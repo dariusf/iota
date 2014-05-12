@@ -16,6 +16,19 @@ Features
 - assignment operators
 - primitives: strings, numbers, boolean values, functions
 
+Still to come
+-------------
+
+- `self`
+- primitives: `nil`, lists
+- call introspection
+- most library functions
+- prototype tree
+- proper scope chain
+- proper lazy argument evaluation
+- defining operators of custom precedence
+- defining assignment operators
+
 Dependencies
 ------------
 
@@ -53,15 +66,6 @@ A demo of Iota running in a web page can be found in `/demos/browser`. After run
 
 `node iota demos\node\demo.io`
 
-Todo
-----
-
-- `self`
-- primitives: `nil`, lists
-- call introspection
-- most library functions
-- prototype tree
-- proper scope chain
-- proper lazy argument evaluation
-- defining operators of custom precedence
-- defining assignment operators
+License
+-------
+MIT
