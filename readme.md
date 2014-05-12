@@ -1,8 +1,3 @@
-
-
-Io-to-JavaScript compiler
-
-
 Iota
 ====
 
@@ -26,6 +21,7 @@ Dependencies
 
 - [node.js](http://nodejs.org/)
 - [Jison](http://zaach.github.io/jison/)
+- [Browserify](http://browserify.org/)
 - [Escodegen](https://github.com/Constellation/escodegen)
 
 The AST constructed by the parser complies with the [Mozilla Parser API](https://developer.mozilla.org/en-US/docs/SpiderMonkey/Parser_API) specification.
@@ -33,19 +29,29 @@ The AST constructed by the parser complies with the [Mozilla Parser API](https:/
 Installation
 ------------
 
-- `git clone asdasdasdsadadsasddasasadsassd`
+- `git clone`
 - `npm install`
 - `make`
 
 Usage
 -----
 
+**Node**
+
 ```js
-var iota = require('iota-compiler');
+var iota = require('iota');
 
 eval(iota.parse('fact := method(n, if (n == 0, 1, n * fact (n - 1))); writeln(fact(5))'));
 // => 120
 ```
+
+**Browser**
+
+A demo of Iota running in a web page can be found in `/demos/browser`. After running `make`, all the necessary files will be packaged into `bundle.js` and `lib.js`. Simply include these two files in your web page as in the demo, and you'll be able to use Iota just like in the Node example above (complete with `require`, courtesy of Browserify).
+
+**Command-line**
+
+`node iota.js demos\node\demo.io`
 
 Todo
 ----

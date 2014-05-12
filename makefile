@@ -4,7 +4,9 @@ BROWSERIFY = ./node_modules/.bin/browserify
 
 BROWSER_DEMOS = demos/browser
 
-all: src/parser.js
+all: parser browser
+
+parser: src/parser.js
 
 src/parser.js: src/parser.jison
 	$(JISON) src/parser.jison -o src/parser.js
