@@ -2,7 +2,7 @@
 var fs = require('fs');
 var path = require('path');
 
-var compile = require('./compile');
+var compile = require('./src/compile');
 
 var args = process.argv.slice(2);
 

@@ -13,6 +13,6 @@ src/parser.js: src/parser.jison
 
 browser: $(BROWSER_DEMOS)/bundle.js $(BROWSER_DEMOS)/lib.js
 
-$(BROWSER_DEMOS)/bundle.js $(BROWSER_DEMOS)/lib.js: src/*.js
-	$(BROWSERIFY) -r ./src/iota.js:iota -o $(BROWSER_DEMOS)/bundle.js
+$(BROWSER_DEMOS)/bundle.js $(BROWSER_DEMOS)/lib.js: src/*.js iota.js
+	$(BROWSERIFY) -r ./iota.js:iota -o $(BROWSER_DEMOS)/bundle.js
 	cp src/lib.js $(BROWSER_DEMOS)
