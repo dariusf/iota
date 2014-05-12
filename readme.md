@@ -54,7 +54,7 @@ Usage
 ```js
 var iota = require('iota');
 
-eval(iota.parse('fact := method(n, if (n == 0, 1, n * fact (n - 1))); writeln(fact(5))'));
+eval(iota.compile('fact := method(n, if (n == 0, 1, n * fact (n - 1))); writeln(fact(5))'));
 // => 120
 ```
 
@@ -65,6 +65,12 @@ A demo of Iota running in a web page can be found in `/demos/browser`. After run
 **Command-line**
 
 `node iota demos\node\demo.io`
+
+API
+---
+
+- `iota.parse(code);` returns JSON syntax tree
+- `iota.compile(code);` additionally emits JavaScript from the syntax tree
 
 License
 -------

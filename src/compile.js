@@ -200,7 +200,7 @@ function parse (code) {
 	var generated = [];
 	for (var i=0; i<ast.length; i++) {
 		ast[i] = compile(ast[i], "Lobby", false);
-		generated.push(escodegen.generate(ast[i]));
+		generated.push(ast[i]);
 	}
 	
 	// console.log("-------parsed--------\n");
@@ -209,7 +209,18 @@ function parse (code) {
 	//print(ast);
 
 	// var generated = emit(ast);
-	generated = generated.join(';\n');
+
+	// generated = generated.join(';\n');
+	generated = {
+		type: "Program",
+		body: generated.map(function (expr) {
+			return {
+				type: "ExpressionStatement",
+				expression: expr
+			};
+		})
+	};
+
 	// console.log("\n" + generated);
 
 
@@ -221,6 +232,10 @@ function parse (code) {
 // }));;
 
 	return generated;
+}
+
+function parseAndEmit (code) {
+	return escodegen.generate(parse(code));
 }
 
 function compile (ast, receiver, localContext) {
@@ -380,10 +395,7 @@ function compile (ast, receiver, localContext) {
 	return result;
 }
 
-function emit (ast) {
-	return escodegen.generate(ast);
-}
-
 module.exports = {
-	parse: parse
+	parse: parse,
+	compile: parseAndEmit
 };
