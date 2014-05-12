@@ -13,8 +13,12 @@
 				var outputField = $('#output')[0];
 
 				function update () {
-					var parsed = iota.parse(inputField.value);
-					outputField.value = parsed;
+					try {
+						var parsed = iota.parse(inputField.value);
+						outputField.value = parsed;
+					} catch (e) {
+						outputField.value = e;
+					}
 					// $('#result')[0].value = eval(parsed);
 				}
 
