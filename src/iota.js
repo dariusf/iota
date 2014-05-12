@@ -9,9 +9,10 @@ var args = process.argv.slice(2);
 
 var filename = args[0];
 
-var runtimeLibCode;
+var runtimeLibCode = "";
 
 if (fs.readFile) {
+	// we're running in node
 	fs.readFile(path.join(__dirname, 'lib.js'), {encoding: 'utf-8'}, function(err, data) {
 		runtimeLibCode = data;
 
@@ -30,10 +31,10 @@ if (fs.readFile) {
 		
 	});
 }
-else {
+// else {
 	// we're in the browser
-	runtimeLibCode = document.querySelectorAll('#runtimeLibCode')[0].innerHTML;
-}
+	// runtimeLibCode = document.querySelectorAll('#runtimeLibCode')[0].innerHTML;
+// }
 
 
 var util = require('util');
