@@ -1,8 +1,7 @@
 
 var fs = require('fs');
-var path = require('path');
-var iota = require('./../../src/iota.js');
+var iota = require('./../../iota.js');
 
-fs.readFile(path.join(__dirname, 'demo.io'), {encoding: 'utf-8'}, function(err, data) {
-	eval(iota.parse(data));
+fs.readFile('demo.io', {encoding: 'utf-8'}, function(err, data) {
+	console.log(JSON.stringify(iota.parse(data), null, 4));
 });

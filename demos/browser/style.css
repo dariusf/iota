@@ -16,10 +16,6 @@ textarea {
 	margin-top: 20px;
 }
 
-#output {
-	background: #dadada;
-}
-
-#result {
+#js, #ast, #result {
 	background: #dadada;
 }

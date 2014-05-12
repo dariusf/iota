@@ -10,16 +10,18 @@
 				var $ = document.querySelectorAll.bind(document);
 
 				var inputField = $('#input')[0];
-				var outputField = $('#output')[0];
+				var astField = $('#ast')[0];
+				var jsField = $('#js')[0];
 
 				function update () {
 					try {
-						var parsed = iota.parse(inputField.value);
-						outputField.value = parsed;
+						astField.value = JSON.stringify(iota.parse(inputField.value), null, 4);
+						jsField.value = iota.compile(inputField.value);
 					} catch (e) {
-						outputField.value = e;
+						astField.value = e;
+						jsField.value = "";
 					}
-					// $('#result')[0].value = eval(parsed);
+					// $('#result')[0].value = eval(js);
 				}
 
 				inputField.addEventListener("keyup", update);
@@ -34,7 +36,9 @@
 		<h1>Iota Demo</h1>
 		<textarea id="input" rows="5" cols="30" placeholder="Your Io code here"></textarea>
 		<br/>
-		<textarea id="output" readonly rows="10" cols="30" placeholder="Compiled JavaScript"></textarea>
+		<textarea id="ast" readonly rows="15" cols="30" placeholder="Compiled JavaScript"></textarea>
+		<br/>
+		<textarea id="js" readonly rows="10" cols="30" placeholder="Syntax Tree"></textarea>
 		<br/>
 		<!-- <textarea id="result" readonly rows="1" cols="30" placeholder="Result"></textarea> -->
 	</body>
