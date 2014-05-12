@@ -1,3 +1,4 @@
 node_modules
 src/parser.js
-demos/bundle.js
+demos/browser/bundle.js
+demos/browser/lib.js

@@ -2,13 +2,15 @@
 JISON = ./node_modules/.bin/jison
 BROWSERIFY = ./node_modules/.bin/browserify
 
+BROWSER_DEMOS = demos/browser
+
 all: src/parser.js
 
 src/parser.js: src/parser.jison
 	$(JISON) src/parser.jison -o src/parser.js
 
-browser: demos/bundle.js
+browser: $(BROWSER_DEMOS)/bundle.js $(BROWSER_DEMOS)/lib.js
 
-demos/bundle.js: src/*.js
-	$(BROWSERIFY) -r ./src/iota.js:iota -o demos/bundle.js
-	cp src/lib.js demos
+$(BROWSER_DEMOS)/bundle.js $(BROWSER_DEMOS)/lib.js: src/*.js
+	$(BROWSERIFY) -r ./src/iota.js:iota -o $(BROWSER_DEMOS)/bundle.js
+	cp src/lib.js $(BROWSER_DEMOS)
