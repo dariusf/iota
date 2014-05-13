@@ -16,3 +16,8 @@ browser: $(BROWSER_DEMOS)/bundle.js $(BROWSER_DEMOS)/lib.js
 $(BROWSER_DEMOS)/bundle.js $(BROWSER_DEMOS)/lib.js: src/*.js iota.js
 	$(BROWSERIFY) -r ./iota.js:iota -o $(BROWSER_DEMOS)/bundle.js
 	cp src/lib.js $(BROWSER_DEMOS)
+
+update-pages:
+	git checkout gh-pages
+	git merge -s subtree master
+	git checkout master
