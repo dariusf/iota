@@ -1,11 +1,12 @@
 
 body {
 	text-align: center;
-	font-family:'Consolas', Courier, monospace;
-	font-size: 12px;
+	font-family: Arial;
 }
 
 textarea {
+	font-size: 12px;
+	font-family:'Consolas', Courier, monospace;
 	width: 80%;
 	padding: 10px;
 	border-radius: 5px;

@@ -5,6 +5,8 @@ Iota is a source-to-source compiler which accepts [Io](http://iolanguage.org/) c
 
 The project is very much still in its infancy (having been started way too late): only a minimal subset of Io is implemented. A number of core constructs and much of the standard library are not yet done.
 
+Try it out [here](http://dariusf.github.io/iota/).
+
 Features
 --------
 
