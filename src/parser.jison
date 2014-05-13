@@ -88,7 +88,8 @@ message
             $$ = {
                 type: 'symbol',
                 value: $1,
-                arguments: []
+                arguments: [],
+                loc: {start: {line: @$.first_line, column: @$.first_column}, end: {line: @$.last_line, column: @$.last_column}}
             };
         }
     | symbol arguments
@@ -96,7 +97,8 @@ message
             $$ = {
                 type: 'symbol',
                 value: $1,
-                arguments: $2
+                arguments: $2,
+                loc: {start: {line: @$.first_line, column: @$.first_column}, end: {line: @$.last_line, column: @$.last_column}}
             };
         }
     ;
