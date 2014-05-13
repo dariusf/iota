@@ -66,7 +66,9 @@ A demo of Iota running in a web page can be found in `/demos/browser`. After run
 
 **Command-line**
 
-`node iota demos\node\demo.io`
+```
+node iota demos\node\demo.io
+```
 
 API
 ---
