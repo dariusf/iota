@@ -1,0 +1,21 @@
+
+body {
+	text-align: center;
+	font-family:'Consolas', Courier, monospace;
+	font-size: 12px;
+}
+
+textarea {
+	width: 80%;
+	padding: 10px;
+	border-radius: 5px;
+  	border: 1px solid #C6C6C6;
+}
+
+#input {
+	margin-top: 20px;
+}
+
+#js, #ast, #result {
+	background: #dadada;
+}
