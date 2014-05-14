@@ -4,7 +4,7 @@ var escodegen = require('escodegen');
 var parser = require('./parser');
 
 function preprocessor (code) {
-	code = code.replace(/Object/g, 'IoRootObject');
+	// code = code.replace(/Object/g, 'IoRootObject');
 	code = code.replace(/(\r?\n)+/g, '\n').trim();
 	return code;
 }

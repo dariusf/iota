@@ -1,4 +1,4 @@
-Lobby.send('Lobby').send('setSlot', IoStringWrapper('Person'), Lobby.send('IoRootObject').send('clone'));
+Lobby.send('Lobby').send('setSlot', IoStringWrapper('Person'), Lobby.send('Object').send('clone'));
 Lobby.send('Person').send('setSlot', IoStringWrapper('hello'), IoNumberWrapper(1));
 Lobby.send('Person').send('setSlot', IoStringWrapper('talk'), Lobby.send('method', 'name', IoThunk(function (locals) {
     return locals.send('writeln', locals.send('name').send('charAt', IoNumberWrapper(2)));

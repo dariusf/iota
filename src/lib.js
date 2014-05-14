@@ -1,20 +1,10 @@
 
-// Utility
-
-Object.prototype.getName = function() { 
-   var funcNameRegex = /function (.{1,})\(/;
-   var results = (funcNameRegex).exec((this).constructor.toString());
-   return (results && results.length > 1) ? results[1] : "";
-};
-
-// System code
-
 function IoObject (slots, proto) {
 	this.slots = slots || {};
 	this.proto = proto;
 }
 IoObject.prototype.findSlot = function (slot) {
-	if (this === IoRootObject || this.slots[slot]) { // use hasOwnProperty
+	if (this === IoRootObject || this.slots[slot]) { // TODO use hasOwnProperty
 		return this.slots[slot];
 	} else if (this.proto) {
 		return this.proto.findSlot(slot);
@@ -171,58 +161,6 @@ var IoMethod = new IoObject({
 
 Lobby.slots['true'] = IoTrue;
 Lobby.slots['false'] = IoFalse;
-Lobby.slots['IoRootObject'] = IoRootObject;
+Lobby.slots['Object'] = IoRootObject;
 Lobby.slots['Lobby'] = Lobby;
 Lobby.proto = IoRootObject;
-
-// module.exports = {
-	// IoObject: IoObject,
-	// Lobby: Lobby,
-	// IoRootObject: IoRootObject,
-	// IoNumber: IoNumber,
-	// IoNumberWrapper: IoNumberWrapper,
-	// IoString: IoString,
-	// IoStringWrapper: IoStringWrapper,
-	// IoThunk: IoThunk,
-	// IoMethod: IoMethod
-// };
-
-// Generated code
-
-// runTests();
-
-function runTests () {
-	var Person = IoRootObject.send('clone', 'Person', false);
-	Person.send('setSlot', 'legs', 2);
-	var boy = Person.send('clone', 'Person', true);
-	console.log(2 === boy.send('legs')); // true
-
-	var Vehicle = IoRootObject.send('clone', 'Vehicle', false);
-	Vehicle.send('setSlot', 'desc', 'Something to take you places');
-	console.log(Vehicle.send('slotNames'));
-	console.log(Vehicle.send('type'));
-	console.log(Vehicle.send('desc'));
-
-	var Car = Vehicle.send('clone', 'Car', false);
-	console.log(Car.send('slotNames'));
-	console.log(Car.send('type'));
-	console.log(Car.send('desc'));
-
-	var ferrari = Car.send('clone', 'Car', true);
-	console.log(ferrari.send('slotNames'));
-	console.log(ferrari.send('type'));
-	console.log(ferrari.send('desc'));
-
-	var a = IoNumberWrapper(1);
-	var b = IoNumberWrapper(2);
-	var c = a.send('plus', b);
-	console.log(c.send('value'));
-
-	var printSomething = IoMethod.send('clone');
-	printSomething.body = IoThunk(function(locals) {
-		var a = locals.send('a');
-		var b = locals.send('b');
-		console.log(a.send('plus', b));
-	});
-	printSomething.send('activate', printSomething, 'a', a, 'b', b);
-}
