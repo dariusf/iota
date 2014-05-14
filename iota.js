@@ -35,7 +35,7 @@ if (fs.readFile) {
 
 module.exports = {
 	compile: function (input) {
-		return (runtimeLibCode + '\n\n' + compile.compile(input) + ';').trim();
+		return (runtimeLibCode + '\n\n' + compile.compile(input)).trim();
 	},
 	parse: function (input) {
 		return compile.parse(input);

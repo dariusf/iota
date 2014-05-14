@@ -1,0 +1,6 @@
+Lobby setSlot("Person", Object clone)
+Person hello := 1
+Person talk := method(name, writeln(name charAt(2)))
+Person hello
+if (true, Person talk("billy"), Person talk("mandy"))
+writeln(Person slotNames)

@@ -1,0 +1,8 @@
+Lobby.send('Lobby').send('setSlot', IoStringWrapper('fact'), Lobby.send('method', 'n', IoThunk(function (locals) {
+    return locals.send('if', locals.send('n').send('==', IoNumberWrapper(0)), IoThunk(function () {
+        return IoNumberWrapper(1);
+    }), IoThunk(function () {
+        return locals.send('n').send('*', locals.send('fact', locals.send('n').send('-', IoNumberWrapper(1))));
+    }));
+})));
+Lobby.send('fact', IoNumberWrapper(5));
