@@ -60,11 +60,11 @@ function applyMacros (ast) {
 
 				// pick the previous two elements
 
-				var receiver, slotName;
+				var target, slotName;
 				if (i === 0) {
-					throw new Error("SyntaxError: no receiver for assignment operator");
+					throw new Error("SyntaxError: no target for assignment operator");
 				} else if (i === 1) {
-					receiver = {
+					target = {
 						type: 'message',
 						value: {
 							type: 'symbol',
@@ -77,7 +77,7 @@ function applyMacros (ast) {
 					};
 					slotName = chain.value[0];
 				} else {
-					receiver = chain.value[i-2];
+					target = chain.value[i-2];
 					slotName = chain.value[i-1];
 				}
 
@@ -115,7 +115,7 @@ function applyMacros (ast) {
 					}
 				};
 
-				chain.value = beforethose.concat([receiver, setSlot]);
+				chain.value = beforethose.concat([target, setSlot]);
 
 				// push the newly created one into the queue
 				chains.push(rhs);
@@ -199,7 +199,7 @@ function parse (code) {
 
 	var generated = [];
 	for (var i=0; i<ast.length; i++) {
-		ast[i] = compile(ast[i], "Lobby", false);
+		ast[i] = compile(ast[i], {type: "Identifier", name: "Lobby"}, {type: "Identifier", name: "Lobby"});
 		generated.push(ast[i]);
 	}
 	
@@ -239,20 +239,19 @@ function parseAndEmit (code) {
 }
 
 function compile (ast, receiver, localContext) {
-
 	var result = {};
 
 	if (ast.type === 'chain') {
 		//  a chain is a series of left-associative messages
 		var chain = ast.value;
 		var current;
-		receiver = receiver === 'locals' || localContext ? 'locals' : 'Lobby'; // when starting a chain, start from the beginning
+		// receiver = receiver === 'locals' || localContext ? 'locals' : 'Lobby'; // when starting a chain, start from the beginning
 
 		for (var i=0; i<chain.length; i++) {
 			// the receiver of a message in a chain is the preceding one
 			current = chain[i];
 			current = compile(current, receiver, localContext);
-			receiver = escodegen.generate(current);
+			receiver = current;
 		}
 		return current;
 	} else if (ast.type === 'message') {
@@ -288,10 +287,11 @@ function compile (ast, receiver, localContext) {
 				type: "CallExpression",
 				callee: {
 				    type: "MemberExpression",
-				    object: {
-				    	type: "Identifier",
-				    	name: receiver // a
-				    },
+				    object: receiver,
+				    // {
+				    // 	type: "Identifier",
+				    // 	name: receiver // a
+				    // },
 				    property: {
 		                type: "Identifier",
 		                name: "send" // b
@@ -301,7 +301,7 @@ function compile (ast, receiver, localContext) {
 				arguments: [symbolValue].concat(symbol.arguments.map(function (arg) {
 					// arguments should just use lobby as context, not the current one
 					// unless it's a method argument
-					return compile(arg, receiver === "locals" || localContext ? "locals" : "Lobby", localContext);
+					return compile(arg, localContext, localContext);
 				}))
 			};
 
@@ -309,7 +309,7 @@ function compile (ast, receiver, localContext) {
 
 				// use local context
 				result.arguments = [symbolValue].concat(symbol.arguments.map(function (arg) {
-					return compile(arg, "locals", true);
+					return compile(arg, {type: "Identifier", name: "locals"}, {type: "Identifier", name: "locals"});
 				}));
 
 				// turn all arguments but the last to strings instead
