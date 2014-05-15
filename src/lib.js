@@ -96,6 +96,9 @@ var IoRootObject = new IoObject({
 		else {
 			return alt.eval();
 		}
+	},
+	"==": function (other) {
+		return IoBooleanWrapper(this === other);
 	}
 }, Lobby);
 
@@ -110,7 +113,7 @@ var IoNumber = new IoObject({
 		return IoNumberWrapper(this.slots.value - other.slots.value);
 	},
 	"==": function (other) {
-		return this.slots.value === other.slots.value ? IoTrue : IoFalse;
+		return IoBooleanWrapper(this.slots.value === other.slots.value);
 	},
 	toIoString: function () {
 		return IoStringWrapper(this.slots.value);
@@ -151,6 +154,9 @@ var IoFalse = new IoObject({
 		return IoStringWrapper("false");
 	}
 }, IoObject);
+function IoBooleanWrapper (bool) {
+	return bool ? IoTrue : IoFalse;
+}
 
 function IoThunk (f) {
 	return {f:f, eval: function() {return f.apply(null, Array.prototype.slice.call(arguments));}};

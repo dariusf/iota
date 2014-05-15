@@ -1,0 +1,2 @@
+Lobby.send('Lobby').send('setSlot', IoStringWrapper('Person'), Lobby.send('Object').send('clone'));
+Lobby.send('writeln', Lobby.send('Person').send('==', Lobby.send('Person')));

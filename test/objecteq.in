@@ -1,0 +1,2 @@
+Person := Object clone
+writeln(Person == Person)
