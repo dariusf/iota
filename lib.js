@@ -1,20 +1,10 @@
 
-// Utility
-
-Object.prototype.getName = function() { 
-   var funcNameRegex = /function (.{1,})\(/;
-   var results = (funcNameRegex).exec((this).constructor.toString());
-   return (results && results.length > 1) ? results[1] : "";
-};
-
-// System code
-
 function IoObject (slots, proto) {
 	this.slots = slots || {};
 	this.proto = proto;
 }
 IoObject.prototype.findSlot = function (slot) {
-	if (this === IoRootObject || this.slots[slot]) { // use hasOwnProperty
+	if (this === IoRootObject || this.slots.hasOwnProperty(slot)) {
 		return this.slots[slot];
 	} else if (this.proto) {
 		return this.proto.findSlot(slot);
@@ -31,7 +21,7 @@ IoObject.prototype.send = function (message) {
 			return slot.apply(this, args);
 		} else {
 			if (slot.activate) {
-				return slot.activate.apply(slot, args);
+				return slot.activate.apply(slot, [this].concat(args));
 			} else {
 				return slot;
 			}
@@ -55,9 +45,18 @@ var IoRootObject = new IoObject({
 	slotNames: function () {
 		return Object.keys(this.slots);
 	},
+	getSlot: function (slotName) {
+		// TODO this method only works for user-defined methods for now,
+		// which are IoObjects and can respond to messages.
+		// At the moment all primitive methods are raw functions and won't work.
+		slotName = slotName.slots.value;
+		var slot = this.findSlot(slotName);
+		return slot;
+	},
 	setSlot: function (slot, value) {
 		slot = slot.slots.value;
 		this.slots[slot] = value;
+		return null; // IoNil
 	},
 	updateSlot: function (slot, value) {
 		if (this.slots[slot]) {
@@ -84,13 +83,15 @@ var IoRootObject = new IoObject({
 		method.body = thunk;
 
 		method.activate = function () {
-			var args = Array.prototype.slice.call(arguments);
+			var self = arguments[0];
+			var args = Array.prototype.slice.call(arguments, 1);
 
-			var locals = new IoObject({}, Lobby);
+			var locals = method.activate.locals || new IoObject({}, self);
 			for (var i=0; i<args.length; i++) {
 				locals.send('setSlot', IoStringWrapper(parameters[i]), args[i]);
-				if (i > parameters) break;
+				if (i > parameters) break; // over-application
 			}
+			locals.send('setSlot', IoStringWrapper('self'), self);
 
 			return this.body.eval(locals);
 		};
@@ -104,6 +105,9 @@ var IoRootObject = new IoObject({
 		else {
 			return alt.eval();
 		}
+	},
+	"==": function (other) {
+		return IoBooleanWrapper(this === other);
 	}
 }, Lobby);
 
@@ -118,7 +122,7 @@ var IoNumber = new IoObject({
 		return IoNumberWrapper(this.slots.value - other.slots.value);
 	},
 	"==": function (other) {
-		return this.slots.value === other.slots.value ? IoTrue : IoFalse;
+		return IoBooleanWrapper(this.slots.value === other.slots.value);
 	},
 	toIoString: function () {
 		return IoStringWrapper(this.slots.value);
@@ -159,6 +163,9 @@ var IoFalse = new IoObject({
 		return IoStringWrapper("false");
 	}
 }, IoObject);
+function IoBooleanWrapper (bool) {
+	return bool ? IoTrue : IoFalse;
+}
 
 function IoThunk (f) {
 	return {f:f, eval: function() {return f.apply(null, Array.prototype.slice.call(arguments));}};
@@ -169,60 +176,30 @@ var IoMethod = new IoObject({
 	activate: null // defined later
 }, IoRootObject);
 
+// A proxy object for hooking into the messages of another
+// object and forwarding them, redirecting them, etc.
+// For internal use only.
+
+function IoProxy (forObject, action) {
+	var p = new IoObject({type: "Proxy"}, forObject);
+	var stop = false;
+
+	p.send = function (message) {
+		var result = action.apply(this, arguments);
+		if (stop) {
+			return result;
+		} else {
+			return IoObject.prototype.send.apply(p, arguments);
+		}
+	};
+	p.stopPrototypePropagation = function () {
+		stop = true;
+	};
+	return p;
+}
+
 Lobby.slots['true'] = IoTrue;
 Lobby.slots['false'] = IoFalse;
-Lobby.slots['IoRootObject'] = IoRootObject;
+Lobby.slots['Object'] = IoRootObject;
 Lobby.slots['Lobby'] = Lobby;
 Lobby.proto = IoRootObject;
-
-// module.exports = {
-	// IoObject: IoObject,
-	// Lobby: Lobby,
-	// IoRootObject: IoRootObject,
-	// IoNumber: IoNumber,
-	// IoNumberWrapper: IoNumberWrapper,
-	// IoString: IoString,
-	// IoStringWrapper: IoStringWrapper,
-	// IoThunk: IoThunk,
-	// IoMethod: IoMethod
-// };
-
-// Generated code
-
-// runTests();
-
-function runTests () {
-	var Person = IoRootObject.send('clone', 'Person', false);
-	Person.send('setSlot', 'legs', 2);
-	var boy = Person.send('clone', 'Person', true);
-	console.log(2 === boy.send('legs')); // true
-
-	var Vehicle = IoRootObject.send('clone', 'Vehicle', false);
-	Vehicle.send('setSlot', 'desc', 'Something to take you places');
-	console.log(Vehicle.send('slotNames'));
-	console.log(Vehicle.send('type'));
-	console.log(Vehicle.send('desc'));
-
-	var Car = Vehicle.send('clone', 'Car', false);
-	console.log(Car.send('slotNames'));
-	console.log(Car.send('type'));
-	console.log(Car.send('desc'));
-
-	var ferrari = Car.send('clone', 'Car', true);
-	console.log(ferrari.send('slotNames'));
-	console.log(ferrari.send('type'));
-	console.log(ferrari.send('desc'));
-
-	var a = IoNumberWrapper(1);
-	var b = IoNumberWrapper(2);
-	var c = a.send('plus', b);
-	console.log(c.send('value'));
-
-	var printSomething = IoMethod.send('clone');
-	printSomething.body = IoThunk(function(locals) {
-		var a = locals.send('a');
-		var b = locals.send('b');
-		console.log(a.send('plus', b));
-	});
-	printSomething.send('activate', printSomething, 'a', a, 'b', b);
-}

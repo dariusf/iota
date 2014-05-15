@@ -12,39 +12,73 @@ var args = process.argv.slice(2);
 var filename = args[0];
 var runtimeLibCode = ""
 
-if (fs.readFile) {
-	// we're running in node
-	fs.readFile(path.resolve(__dirname, 'src/lib.js'), {encoding: 'utf-8'}, function(err, data) {
-		if (err) {
-			console.log("Error reading library file:", err);
-		} else {
-			runtimeLibCode = data;
-		}
+var runningInNode = !!fs.readFile;
 
-		if (filename) {
-			var filePath = filename;
-			fs.readFile(filePath, {encoding: 'utf-8'}, function(err, data) {
-				if (err) {
-					console.log("Error reading", filePath, ":", err);
-				} else {
-					console.log(JSON.stringify(compile.parse(data), null, 4));
-				}
-			});
+if (runningInNode) {
+	runtimeLibCode = fs.readFileSync(path.resolve(__dirname, 'src/lib.js'), {encoding: 'utf-8'});
 
-		}
-		
-	});
+	if (filename) {
+		var data = fs.readFileSync(filename, {encoding: 'utf-8'});
+		console.log(JSON.stringify(compile.parse(data), null, 4));
+	}
 }
 // else... we're running in the browser, which has its own means of acquiring lib.js
 
 module.exports = {
-	compile: function (input) {
-		return (runtimeLibCode + '\n\n' + compile.compile(input) + ';').trim();
+	compile: function (input, includeLibrary, boilerplate) {
+		// never include the library when running in the browser
+		includeLibrary = runningInNode && includeLibrary;
+		
+		var result = compile.compile(input);
+		return includeLibrary ? (runtimeLibCode + '\n\n' + (boilerplate ? before + "\n\n" : "") + result + (boilerplate ? "\n" + after : "")).trim() : result.trim();
 	},
 	parse: function (input) {
 		return compile.parse(input);
 	}
 };
+
+var before =
+	"function execute () {\n"
+	+ "	var obj = this;\n"
+	+ "\n"
+	+ "	var localsProxy = new IoProxy(IoRootObject, function (message) {\n"
+	+ "		if (obj.hasOwnProperty(message)) {\n"
+	+ "			this.stopPrototypePropagation();\n"
+	+ "			var args = Array.prototype.slice.call(arguments, 1);\n"
+	+ "			return obj[message].apply(obj, args);\n"
+	+ "		}\n"
+	+ "	});\n"
+	+ "\n"
+	+ "	var playerProxy = new IoProxy(IoRootObject, function (message) {\n"
+	+ "		if (message === 'chooseAction') {\n"
+	+ "\n"
+	+ "			this.stopPrototypePropagation();\n"
+	+ "\n"
+	+ "			var args = Array.prototype.slice.call(arguments, 1);\n"
+	+ "			var slot = this.findSlot(message);\n"
+	+ "			slot.activate.locals = localsProxy;\n"
+	+ "\n"
+	+ "			// unwrap arguments\n"
+	+ "			args = args.map(function (arg) {\n"
+	+ "				if (arg.type === 'Block') {\n"
+	+ "					// IoMethod\n"
+	+ "					return function () {\n"
+	+ "						return arg.activate.apply(arg, arguments);\n"
+	+ "					};\n"
+	+ "				} else {\n"
+	+ "					// IoStringWrapper / IoNumberWrapper / IoBooleanWrapper\n"
+	+ "					return arg.slots.value;\n"
+	+ "				}\n"
+	+ "			});\n"
+	+ "\n"
+	+ "			return slot.activate.apply(slot, [IoRootObject].concat(args));\n"
+	+ "		}\n"
+	+ "	});\n"
+	+ "\n"
+	+ "	Lobby.slots['player'] = playerProxy;";
+
+var after = "\n}";
+
 }).call(this,require("Zbi7gb"),"/")
 },{"./src/compile":25,"Zbi7gb":6,"fs":3,"path":5}],3:[function(require,module,exports){
 
@@ -6433,7 +6467,7 @@ module.exports={
     "url": "https://github.com/Constellation/escodegen/issues"
   },
   "_id": "escodegen@1.3.2",
-  "_from": "escodegen@"
+  "_from": "escodegen@~1.3.2"
 }
 
 },{}],25:[function(require,module,exports){
@@ -6443,7 +6477,7 @@ var escodegen = require('escodegen');
 var parser = require('./parser');
 
 function preprocessor (code) {
-	code = code.replace(/Object/g, 'IoRootObject');
+	// code = code.replace(/Object/g, 'IoRootObject');
 	code = code.replace(/(\r?\n)+/g, '\n').trim();
 	return code;
 }
@@ -6499,11 +6533,11 @@ function applyMacros (ast) {
 
 				// pick the previous two elements
 
-				var receiver, slotName;
+				var target, slotName;
 				if (i === 0) {
-					throw new Error("SyntaxError: no receiver for assignment operator");
+					throw new Error("SyntaxError: no target for assignment operator");
 				} else if (i === 1) {
-					receiver = {
+					target = {
 						type: 'message',
 						value: {
 							type: 'symbol',
@@ -6516,7 +6550,7 @@ function applyMacros (ast) {
 					};
 					slotName = chain.value[0];
 				} else {
-					receiver = chain.value[i-2];
+					target = chain.value[i-2];
 					slotName = chain.value[i-1];
 				}
 
@@ -6554,7 +6588,7 @@ function applyMacros (ast) {
 					}
 				};
 
-				chain.value = beforethose.concat([receiver, setSlot]);
+				chain.value = beforethose.concat([target, setSlot]);
 
 				// push the newly created one into the queue
 				chains.push(rhs);
@@ -6638,7 +6672,7 @@ function parse (code) {
 
 	var generated = [];
 	for (var i=0; i<ast.length; i++) {
-		ast[i] = compile(ast[i], "Lobby", false);
+		ast[i] = compile(ast[i], {type: "Identifier", name: "Lobby"}, {type: "Identifier", name: "Lobby"});
 		generated.push(ast[i]);
 	}
 	
@@ -6678,20 +6712,19 @@ function parseAndEmit (code) {
 }
 
 function compile (ast, receiver, localContext) {
-
 	var result = {};
 
 	if (ast.type === 'chain') {
 		//  a chain is a series of left-associative messages
 		var chain = ast.value;
 		var current;
-		receiver = receiver === 'locals' || localContext ? 'locals' : 'Lobby'; // when starting a chain, start from the beginning
+		// receiver = receiver === 'locals' || localContext ? 'locals' : 'Lobby'; // when starting a chain, start from the beginning
 
 		for (var i=0; i<chain.length; i++) {
 			// the receiver of a message in a chain is the preceding one
 			current = chain[i];
 			current = compile(current, receiver, localContext);
-			receiver = escodegen.generate(current);
+			receiver = current;
 		}
 		return current;
 	} else if (ast.type === 'message') {
@@ -6727,10 +6760,11 @@ function compile (ast, receiver, localContext) {
 				type: "CallExpression",
 				callee: {
 				    type: "MemberExpression",
-				    object: {
-				    	type: "Identifier",
-				    	name: receiver // a
-				    },
+				    object: receiver,
+				    // {
+				    // 	type: "Identifier",
+				    // 	name: receiver // a
+				    // },
 				    property: {
 		                type: "Identifier",
 		                name: "send" // b
@@ -6740,23 +6774,27 @@ function compile (ast, receiver, localContext) {
 				arguments: [symbolValue].concat(symbol.arguments.map(function (arg) {
 					// arguments should just use lobby as context, not the current one
 					// unless it's a method argument
-					return compile(arg, receiver === "locals" || localContext ? "locals" : "Lobby", localContext);
+					return compile(arg, localContext, localContext);
 				}))
 			};
 
 			if (symbolValue.value === "method") {
 
-				// use local context
+				// use local context for arguments
+
 				result.arguments = [symbolValue].concat(symbol.arguments.map(function (arg) {
-					return compile(arg, "locals", true);
+					return compile(arg, {type: "Identifier", name: "locals"}, {type: "Identifier", name: "locals"});
 				}));
 
-				// turn all arguments but the last to strings instead
+				// turn all arguments but the last to strings instead:
+				// they will be sent as messages to the locals object
+
 				for (var i = 1; i < result.arguments.length - 1; i++) {
-					result.arguments[i] = result.arguments[1].arguments[0];
+					result.arguments[i] = result.arguments[i].arguments[0];
 				}
 
 				// the last becomes a thunk
+
 				var methodBody = result.arguments[result.arguments.length - 1];
 				result.arguments[result.arguments.length - 1] = {
 					type: "CallExpression",
@@ -6826,6 +6864,20 @@ function compile (ast, receiver, localContext) {
 					}]
 				};
 			}
+			// else if (symbolValue.value === "setSlot") {
+				// locate any methods in the compiled arguments of the result
+				// var argsContainingMethods = result.arguments.filter(function (arg) {
+				// 	return arg.type === "CallExpression"
+				// 		&& arg.callee.type === "MemberExpression"
+				// 		&& arg.callee.object.name === "Lobby" &&
+				// 		arg.arguments[0].value === "method";
+				// });
+				
+				// insert the type of the argument in
+				// argsContainingMethods.forEach(function (args) {
+				// 	args.arguments.splice(1, 0, receiver);
+				// });
+			// }
 		}
 	} else {
 		console.log('unrecognized ast type', ast.type);
