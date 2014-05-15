@@ -73,8 +73,15 @@ node iota demos\node\demo.io
 API
 ---
 
-- `iota.parse(code);` returns JSON syntax tree
-- `iota.compile(code);` additionally emits JavaScript from the syntax tree
+```js
+iota.parse(code);
+```
+Returns a JavaScript object representing the syntax tree.
+
+```js
+`iota.compile(code, includeLibrary);
+```
+Returns a string of compiled JavaScript. if `includeLibrary` is true and the compiler is being run from node, the runtime library will be prepended to the output.
 
 License
 -------
