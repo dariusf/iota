@@ -4,7 +4,7 @@ function IoObject (slots, proto) {
 	this.proto = proto;
 }
 IoObject.prototype.findSlot = function (slot) {
-	if (this === IoRootObject || this.slots[slot]) { // TODO use hasOwnProperty
+	if (this === IoRootObject || this.slots.hasOwnProperty(slot)) {
 		return this.slots[slot];
 	} else if (this.proto) {
 		return this.proto.findSlot(slot);
@@ -44,6 +44,14 @@ var IoRootObject = new IoObject({
 	},
 	slotNames: function () {
 		return Object.keys(this.slots);
+	},
+	getSlot: function (slot) {
+		slot = slot.slots.value;
+		if (this.slots.hasOwnProperty(slot)) {
+			return this.slots[slot];
+		} else {
+			return null; // IoNil
+		}
 	},
 	setSlot: function (slot, value) {
 		slot = slot.slots.value;
