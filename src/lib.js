@@ -45,17 +45,18 @@ var IoRootObject = new IoObject({
 	slotNames: function () {
 		return Object.keys(this.slots);
 	},
-	getSlot: function (slot) {
-		slot = slot.slots.value;
-		if (this.slots.hasOwnProperty(slot)) {
-			return this.slots[slot];
-		} else {
-			return null; // IoNil
-		}
+	getSlot: function (slotName) {
+		// TODO this method only works for user-defined methods for now,
+		// which are IoObjects and can respond to messages.
+		// At the moment all primitive methods are raw functions and won't work.
+		slotName = slotName.slots.value;
+		var slot = this.findSlot(slotName);
+		return slot;
 	},
 	setSlot: function (slot, value) {
 		slot = slot.slots.value;
 		this.slots[slot] = value;
+		return null; // IoNil
 	},
 	updateSlot: function (slot, value) {
 		if (this.slots[slot]) {
@@ -85,7 +86,7 @@ var IoRootObject = new IoObject({
 			var self = arguments[0];
 			var args = Array.prototype.slice.call(arguments, 1);
 
-			var locals = new IoObject({}, self);
+			var locals = method.activate.locals || new IoObject({}, self);
 			for (var i=0; i<args.length; i++) {
 				locals.send('setSlot', IoStringWrapper(parameters[i]), args[i]);
 				if (i > parameters) break; // over-application
@@ -174,6 +175,28 @@ var IoMethod = new IoObject({
 	type: "Block",
 	activate: null // defined later
 }, IoRootObject);
+
+// A proxy object for hooking into the messages of another
+// object and forwarding them, redirecting them, etc.
+// For internal use only.
+
+function IoProxy (forObject, action) {
+	var p = new IoObject({type: "Proxy"}, forObject);
+	var stop = false;
+
+	p.send = function (message) {
+		var result = action.apply(this, arguments);
+		if (stop) {
+			return result;
+		} else {
+			return IoObject.prototype.send.apply(p, arguments);
+		}
+	};
+	p.stopPrototypePropagation = function () {
+		stop = true;
+	};
+	return p;
+}
 
 Lobby.slots['true'] = IoTrue;
 Lobby.slots['false'] = IoFalse;

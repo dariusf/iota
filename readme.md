@@ -79,9 +79,9 @@ iota.parse(code);
 Returns a JavaScript object representing the syntax tree.
 
 ```js
-`iota.compile(code, includeLibrary);
+`iota.compile(code, includeLibrary, boilerplate);
 ```
-Returns a string of compiled JavaScript. if `includeLibrary` is true and the compiler is being run from node, the runtime library will be prepended to the output.
+Returns a string of compiled JavaScript. If `includeLibrary` is true and the compiler is being run from node, the runtime library will be prepended to the output. If `boilerplate` is true, the compiled output will additionally be wrapped in a function, allowing easier interfacing with the outside world.
 
 License
 -------
