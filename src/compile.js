@@ -307,17 +307,21 @@ function compile (ast, receiver, localContext) {
 
 			if (symbolValue.value === "method") {
 
-				// use local context
+				// use local context for arguments
+
 				result.arguments = [symbolValue].concat(symbol.arguments.map(function (arg) {
 					return compile(arg, {type: "Identifier", name: "locals"}, {type: "Identifier", name: "locals"});
 				}));
 
-				// turn all arguments but the last to strings instead
+				// turn all arguments but the last to strings instead:
+				// they will be sent as messages to the locals object
+
 				for (var i = 1; i < result.arguments.length - 1; i++) {
-					result.arguments[i] = result.arguments[1].arguments[0];
+					result.arguments[i] = result.arguments[i].arguments[0];
 				}
 
 				// the last becomes a thunk
+
 				var methodBody = result.arguments[result.arguments.length - 1];
 				result.arguments[result.arguments.length - 1] = {
 					type: "CallExpression",
