@@ -391,6 +391,20 @@ function compile (ast, receiver, localContext) {
 					}]
 				};
 			}
+			// else if (symbolValue.value === "setSlot") {
+				// locate any methods in the compiled arguments of the result
+				// var argsContainingMethods = result.arguments.filter(function (arg) {
+				// 	return arg.type === "CallExpression"
+				// 		&& arg.callee.type === "MemberExpression"
+				// 		&& arg.callee.object.name === "Lobby" &&
+				// 		arg.arguments[0].value === "method";
+				// });
+				
+				// insert the type of the argument in
+				// argsContainingMethods.forEach(function (args) {
+				// 	args.arguments.splice(1, 0, receiver);
+				// });
+			// }
 		}
 	} else {
 		console.log('unrecognized ast type', ast.type);

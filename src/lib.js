@@ -21,7 +21,7 @@ IoObject.prototype.send = function (message) {
 			return slot.apply(this, args);
 		} else {
 			if (slot.activate) {
-				return slot.activate.apply(slot, args);
+				return slot.activate.apply(slot, [this].concat(args));
 			} else {
 				return slot;
 			}
@@ -74,13 +74,15 @@ var IoRootObject = new IoObject({
 		method.body = thunk;
 
 		method.activate = function () {
-			var args = Array.prototype.slice.call(arguments);
+			var self = arguments[0];
+			var args = Array.prototype.slice.call(arguments, 1);
 
-			var locals = new IoObject({}, Lobby);
+			var locals = new IoObject({}, self);
 			for (var i=0; i<args.length; i++) {
 				locals.send('setSlot', IoStringWrapper(parameters[i]), args[i]);
-				if (i > parameters) break;
+				if (i > parameters) break; // over-application
 			}
+			locals.send('setSlot', IoStringWrapper('self'), self);
 
 			return this.body.eval(locals);
 		};
