@@ -15,4 +15,3 @@ browser: $(BROWSER_DEMOS)/bundle.js $(BROWSER_DEMOS)/lib.js
 
 $(BROWSER_DEMOS)/bundle.js $(BROWSER_DEMOS)/lib.js: src/*.js iota.js
 	$(BROWSERIFY) -t brfs -r ./iota.js:iota -o $(BROWSER_DEMOS)/bundle.js
-	cp src/lib.js $(BROWSER_DEMOS)

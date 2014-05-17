@@ -51,23 +51,22 @@ Installation
 Usage
 -----
 
-**Node**
+**node**
 
 ```js
 var iota = require('iota');
-
 eval(iota.compile('fact := method(n, if (n == 0, 1, n * fact (n - 1))); writeln(fact(5))'));
 // => 120
 ```
 
 **Browser**
 
-A demo of Iota running in a web page can be found in `/demos/browser`. After running `make`, all the necessary files will be packaged into `bundle.js` and `lib.js`. Simply include these two files in your web page as in the demo, and you'll be able to use Iota just like in the Node example above (complete with `require`, courtesy of Browserify).
+A demo of Iota running in a web page can be found in `/demos/browser`. After running `make`, the necessary files will be packaged into `bundle.js`. Simply include it in your web page as in the demo, and you'll be able to use Iota just like in the node example above (complete with `require`, courtesy of Browserify).
 
-**Command-line**
+**CLI**
 
 ```
-node iota demos\node\demo.io
+node iota ./demos/node/demo.io
 ```
 
 API
@@ -79,9 +78,9 @@ iota.parse(code);
 Returns a JavaScript object representing the syntax tree.
 
 ```js
-`iota.compile(code, includeLibrary, boilerplate);
+iota.compile(code, includeLibrary, boilerplate);
 ```
-Returns a string of compiled JavaScript. If `includeLibrary` is true and the compiler is being run from node, the runtime library will be prepended to the output. If `boilerplate` is true, the compiled output will additionally be wrapped in a function, allowing easier interfacing with the outside world.
+Returns a string of compiled JavaScript. If `includeLibrary` is true, the runtime library will be prepended to the output. If `boilerplate` is true, the compiled output will additionally be wrapped in a function for easier interfacing with the outside world.
 
 License
 -------
