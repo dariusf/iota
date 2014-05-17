@@ -1,0 +1,3 @@
+Lobby.send('a');
+Lobby.send('b').send('c');
+Lobby.send('d');

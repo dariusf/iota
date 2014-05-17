@@ -61,12 +61,12 @@
     */
 
 program
-    : exprs EOF
-        {return $1;}
+    : zeroOrMoreTerminators exprs zeroOrMoreTerminators EOF
+        {return $2;}
     ;
 
 exprs
-    : exprs terminator expr
+    : exprs oneOrMoreTerminators expr
         {$1.push($3); $$ = $1;}
     | expr
         {$$ = [$1];}
@@ -79,7 +79,6 @@ expr
         {$$ = {type: 'chain', value: [{type: 'message', value: $1}]};}
     | '(' expr ')'
         {$$ = $2;}
-    | terminator
     ;
 
 message
@@ -103,9 +102,16 @@ message
         }
     ;
 
-terminator
-    : NEWLINE
+oneOrMoreTerminators
+    : NEWLINE oneOrMoreTerminators
+    | NEWLINE
+    | ';' oneOrMoreTerminators
     | ';'
+    ;
+
+zeroOrMoreTerminators
+    : oneOrMoreTerminators
+    |
     ;
 
 arguments
