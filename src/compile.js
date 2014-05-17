@@ -2,215 +2,174 @@
 var escodegen = require('escodegen');
 
 var parser = require('./parser');
+var pratt = require('./pratt');
 
-function preprocessor (code) {
-	// code = code.replace(/Object/g, 'IoRootObject');
-	// code = code.replace(/(\r?\n)+/g, '\n').trim();
-	return code;
+function applyMacros (ast) {
+
+	// An AST is a list of chains
+	// A chain is a list of messages
+	// A message can have arguments which are messages or chains
+
+	infixOperatorMacro(ast);
+	assignmentOperatorMacro(ast);
+
+	return ast;
 }
 
-var pratt = require('./pratt');
-function applyMacros (ast) {
-	// an ast is a list of chains
-	// a chain is a list of messages
-	// a messages can have arguments which are messages or chains
+function findChainsInAST (nodelist) {
 
-	// infix op macros
-	// walk every chain and rearrange it into proper chains based on precedence
+	// Performs a post-order traversal of an AST and returns
+	// a list of references to all chain objects
 
-	// performs a post-order traversal of the AST and selects all the chains
-	function findChains (nodelist) {
-		var allChains = [];
-		function helper (nodelist) {
-			nodelist.forEach(function (node) {
-				if (node.type === 'chain') {
-					node.value.forEach(function (message) {
-						helper(message.value.arguments);
-					});
-					allChains.push(node);
-				}
-			});
-		}
-		helper(nodelist);
-		return allChains;
+	var allChains = [];
+	function helper (nodelist) {
+		nodelist.forEach(function (node) {
+			if (node.type === 'chain') {
+				node.value.forEach(function (message) {
+					helper(message.value.arguments);
+				});
+				allChains.push(node);
+			}
+		});
 	}
-	var chains = findChains(ast).filter(function (chain) {
-		if (chain.value.length <= 1) return false;
-		var hasAnOperator = chain.value.filter(function (msg) {
-			return pratt.isOperator(msg.value.value.value) && msg.value.arguments.length === 0;
-		}).length > 0;
+	helper(nodelist);
+	return allChains;
+}
 
-		return hasAnOperator;
-	});
+function assignmentOperatorMacro (ast) {
 
+	// Rewrites messages containing assignment operators
+	// with setSlot messages
 
-	chains.forEach(function (chain) {
-		chain.value = pratt.parse(chain).value;
-	});
+	var chains = findChainsInAST(ast);
 
-	// assignment operator macros
-
-	var chains = findChains(ast);
 	while (chains.length > 0) {
 		var chain = chains.pop();
 
 		for (var i=0; i<chain.value.length; i++) {
 			var message = chain.value[i];
-			if (message.value.value.value === ":=") {
 
-				// pick the previous two elements
+			// Find an assignment operator
+			if (message.value.value.value !== ":=") continue;
 
-				var target, slotName;
-				if (i === 0) {
-					throw new Error("SyntaxError: no target for assignment operator");
-				} else if (i === 1) {
-					target = {
-						type: 'message',
-						value: {
-							type: 'symbol',
-							value: {
-								type: 'identifier',
-								value: 'Lobby'
-							},
-							arguments: []
-						}
-					};
-					slotName = chain.value[0];
-				} else {
-					target = chain.value[i-2];
-					slotName = chain.value[i-1];
-				}
+			// Pick the previous two elements in the chain.
+			// They are the target and the slot on the target that
+			// is being assigned:
+			// a b := c
 
-				// rewrite the chain
+			var target, slotName;
 
-				// var current = chain.value[i];
-				// var prevtwo = chain.value.slice(Math.max(i-2,0), i);
-				var beforethose = chain.value.slice(0, Math.max(i-2, 0));
-				var after = chain.value.slice(i+1, chain.value.length);
+			if (i === 0) {
+				// := b
+				throw new Error("SyntaxError: no target for assignment operator");
+			} else if (i === 1) {
+				// a := b
 
-				var rhs = {type: 'chain', value: after};
-				var message = {
-					type: 'chain',
-					value: [{
-						type: 'message',
-						value: {
-							type: 'symbol',
-							value: {
-								type: 'string',
-								value: slotName.value.value.value
-							},
-							arguments: []
-						}
-					}]
-				};
-				var setSlot = {
+				// target defaults to Lobby
+				// TODO: even in method bodies! this has to be
+				// done during compilation when scope is known
+
+				target = {
 					type: 'message',
 					value: {
 						type: 'symbol',
 						value: {
 							type: 'identifier',
-							value: 'setSlot'
+							value: 'Lobby'
 						},
-						arguments: [message, rhs]
+						arguments: []
 					}
 				};
-
-				chain.value = beforethose.concat([target, setSlot]);
-
-				// push the newly created one into the queue
-				chains.push(rhs);
-
-				break;
+				slotName = chain.value[0];
+			} else {
+				// a b := c
+				target = chain.value[i-2];
+				slotName = chain.value[i-1];
 			}
+
+			// rewrite the chain
+
+			// var current = chain.value[i];
+			// var prevtwo = chain.value.slice(Math.max(i-2,0), i);
+			var beforethose = chain.value.slice(0, Math.max(i-2, 0));
+			var after = chain.value.slice(i+1, chain.value.length);
+
+			var rhs = {type: 'chain', value: after};
+			var message = {
+				type: 'chain',
+				value: [{
+					type: 'message',
+					value: {
+						type: 'symbol',
+						value: {
+							type: 'string',
+							value: slotName.value.value.value
+						},
+						arguments: []
+					}
+				}]
+			};
+			var setSlot = {
+				type: 'message',
+				value: {
+					type: 'symbol',
+					value: {
+						type: 'identifier',
+						value: 'setSlot'
+					},
+					arguments: [message, rhs]
+				}
+			};
+
+			chain.value = beforethose.concat([target, setSlot]);
+
+			// Recurse on the newly created chain in case it contains
+			// more operators
+			chains.push(rhs);
+
+			break;
+		
 		}
-
 	}
-	return ast;
-
-// 	function modifyChains (node) {
-// 		if (node.type === "chain") {
-// 			console.log("=>");
-// 			print(node);
-// 			print(r);
-			
-// 			// r.value
-// 			// r.value = r.value.map(modifyChains);
-// var r = node;
-// 			// for each message in the chain
-// 			console.log('done procssing chain', JSON.stringify(node) === JSON.stringify(r));
-
-// 			var r = {
-// 				type: 'chain',
-// 				value: r.value.map(function(msg) {
-// 					// if (msg.type === 'message') {
-
-// 					// }
-// 					return {
-// 						type: 'message',
-// 						value: {
-// 							type: 'symbol',
-// 							value: msg.value.value,
-// 							arguments: msg.value.arguments.map(function (arg) {
-// 								console.log('======ARG=======');
-// 								print(arg);
-// 								return modifyChains(arg);
-// 								// return arg.type === 'chain';
-// 							})
-// 						}
-// 					};
-// 				})
-// 			};
-
-// 			var r = pratt.parse(node);
-
-// 			return r;
-// 		// } else if (node.type === "message") {
-// 		// 	// var r = node.value.arguments.map(modifyChains);
-// 		// 	// node.value.arguments = r;
-// 		// 	// dont mutate
-// 		// 	return {type: 'message', value: node.value};
-// 		} else {
-// 			console.log('macros: unrecognized ast type ', node.type);
-// 		}
-// 	}
-
-
-	// ast = ast.map(modifyChains);
-	// ast[0] = pratt.parse(ast[0]);
-	// assignment op macros
 }
 
+function infixOperatorMacro (ast) {
 
-// function parseWithRuntime (code) {
-// 	return runtimeLibCode + "\n\n" + parse(code) + ";";
-// }
+	// Rearranges all chains containing operators into properly
+	// nested messages based on precedence
+
+	var chains = findChainsInAST(ast).filter(function (chain) {
+
+		// Skip chains that cannot possibly contain operators
+		if (chain.value.length <= 1) return false;
+
+		// A chain will be processed if it contains at least one operator
+		// message with no arguments (meaning it has not been processed yet)
+		var hasAnOperator = chain.value.filter(function (message) {
+			return pratt.isOperator(message.value.value.value) && message.value.arguments.length === 0;
+		}).length > 0;
+
+		return hasAnOperator;
+	});
+
+	chains.forEach(function (chain) {
+		chain.value = pratt.parse(chain).value;
+	});
+}
 
 function parse (code) {
-	code = preprocessor(code);
-	var ast = parser.parse(code);
 
-	// console.log("-------before macro--------\n");
-	// print(ast);
+	var ast = parser.parse(code);
 
 	ast = applyMacros(ast);
 
-	// console.log("-------after macro--------\n");
-	// print(ast);
-
 	var generated = [];
-	for (var i=0; i<ast.length; i++) {
-		ast[i] = compile(ast[i], {type: "Identifier", name: "Lobby"}, {type: "Identifier", name: "Lobby"});
-		generated.push(ast[i]);
-	}
+	ast.forEach(function (chain) {
+		chain = compile(chain, {type: "Identifier", name: "Lobby"}, {type: "Identifier", name: "Lobby"});
+		generated.push(chain);
+	});
 	
-	// console.log("-------parsed--------\n");
-	// print(ast);
-	// console.log(ast);
-	//print(ast);
-
-	// var generated = emit(ast);
-
-	// generated = generated.join(';\n');
+	// TODO make this a sequence statement?
 	generated = {
 		type: "Program",
 		body: generated.map(function (expr) {
@@ -220,16 +179,6 @@ function parse (code) {
 			};
 		})
 	};
-
-	// console.log("\n" + generated);
-
-
-// 	console.log(escodegen.generate({
-//   type: 'BinaryExpression',
-//   operator: '+',
-//   left: { type: 'Literal', value: 40 },
-//   right: { type: 'Literal', value: 2 }
-// }));;
 
 	return generated;
 }
@@ -242,23 +191,22 @@ function compile (ast, receiver, localContext) {
 	var result = {};
 
 	if (ast.type === 'chain') {
-		//  a chain is a series of left-associative messages
+		//  A chain is a series of left-associative messages
 		var chain = ast.value;
 		var current;
-		// receiver = receiver === 'locals' || localContext ? 'locals' : 'Lobby'; // when starting a chain, start from the beginning
 
 		for (var i=0; i<chain.length; i++) {
-			// the receiver of a message in a chain is the preceding one
+			// The receiver of a message in a chain is the preceding one
 			current = chain[i];
 			current = compile(current, receiver, localContext);
 			receiver = current;
 		}
 		return current;
-	} else if (ast.type === 'message') {
-		// the symbol is the name of the message
+	}
+	else if (ast.type === 'message') {
+		// The symbol is the name of the message
 		var symbol = ast.value;
 
-		var symbolValue;
 		if (symbol.value.type === 'number') {
 			result = {
 				type: "CallExpression",
@@ -280,18 +228,14 @@ function compile (ast, receiver, localContext) {
 			};
 		}
 		else if (symbol.value.type === 'identifier') {
-			symbolValue = {type: "Literal", value: symbol.value.value};
+			var symbolValue = {type: "Literal", value: symbol.value.value};
 	
 			// a.b(args);
 			result = {
 				type: "CallExpression",
 				callee: {
 				    type: "MemberExpression",
-				    object: receiver,
-				    // {
-				    // 	type: "Identifier",
-				    // 	name: receiver // a
-				    // },
+				    object: receiver, // a
 				    property: {
 		                type: "Identifier",
 		                name: "send" // b
@@ -299,30 +243,29 @@ function compile (ast, receiver, localContext) {
 				    computed: false,
 				},
 				arguments: [symbolValue].concat(symbol.arguments.map(function (arg) {
-					// arguments should just use lobby as context, not the current one
-					// unless it's a method argument
 					return compile(arg, localContext, localContext);
 				}))
 			};
 
 			if (symbolValue.value === "method") {
 
-				// use local context for arguments
-
 				result.arguments = [symbolValue].concat(symbol.arguments.map(function (arg) {
+					// Arguments will have the locals object as context
 					return compile(arg, {type: "Identifier", name: "locals"}, {type: "Identifier", name: "locals"});
 				}));
 
-				// turn all arguments but the last to strings instead:
+				// Turn all arguments but the last to strings instead;
 				// they will be sent as messages to the locals object
 
 				for (var i = 1; i < result.arguments.length - 1; i++) {
 					result.arguments[i] = result.arguments[i].arguments[0];
 				}
 
-				// the last becomes a thunk
+				// The last becomes a thunk
 
-				var methodBody = result.arguments[result.arguments.length - 1];
+				var lastArgument = result.arguments[result.arguments.length - 1];
+				var methodBody = lastArgument;
+
 				result.arguments[result.arguments.length - 1] = {
 					type: "CallExpression",
 					callee: {
@@ -345,9 +288,11 @@ function compile (ast, receiver, localContext) {
 						}
 					}]
 				}
-			} else if (symbolValue.value === "if") {
+			}
+			else if (symbolValue.value === "if") {
 
-				// convert last two arguments into thunks
+				// Convert last two arguments into thunks
+				// TODO handle cases where if statements have < 3 arguments
 
 				var conseq = result.arguments[2];
 				result.arguments[2] = {
@@ -391,23 +336,9 @@ function compile (ast, receiver, localContext) {
 					}]
 				};
 			}
-			// else if (symbolValue.value === "setSlot") {
-				// locate any methods in the compiled arguments of the result
-				// var argsContainingMethods = result.arguments.filter(function (arg) {
-				// 	return arg.type === "CallExpression"
-				// 		&& arg.callee.type === "MemberExpression"
-				// 		&& arg.callee.object.name === "Lobby" &&
-				// 		arg.arguments[0].value === "method";
-				// });
-				
-				// insert the type of the argument in
-				// argsContainingMethods.forEach(function (args) {
-				// 	args.arguments.splice(1, 0, receiver);
-				// });
-			// }
 		}
 	} else {
-		console.log('unrecognized ast type', ast.type);
+		throw new Error('CompileError: unrecognized AST type: ' + ast.type);
 	}
 
 	return result;
