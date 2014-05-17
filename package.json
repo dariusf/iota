@@ -6,7 +6,8 @@
   "dependencies": {
     "browserify": "~4.1.2",
     "escodegen": "~1.3.2",
-    "jison": "~0.4.13"
+    "jison": "~0.4.13",
+    "brfs": "^1.1.1"
   },
   "devDependencies": {},
   "scripts": {

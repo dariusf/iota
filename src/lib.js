@@ -203,3 +203,4 @@ Lobby.slots['false'] = IoFalse;
 Lobby.slots['Object'] = IoRootObject;
 Lobby.slots['Lobby'] = Lobby;
 Lobby.proto = IoRootObject;
+
