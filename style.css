@@ -4,6 +4,13 @@ body {
 	font-family: Arial;
 }
 
+#options {
+	margin: 0 auto; /* center div */
+	width: 80%;
+	text-align: left;
+	padding: 10px;
+}
+
 textarea {
 	font-size: 12px;
 	font-family:'Consolas', Courier, monospace;

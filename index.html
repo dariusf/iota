@@ -12,19 +12,35 @@
 				var inputField = $('#input')[0];
 				var astField = $('#ast')[0];
 				var jsField = $('#js')[0];
+				var resultField = $('#result')[0];
+
+				var runtimeCheckbox = $('#runtimeCheckbox')[0];
+				var boilerplateCheckbox = $('#boilerplateCheckbox')[0];
+
+				window.console.log = function (message) {
+					resultField.value += message + '\n';
+				};
 
 				function update () {
+					resultField.value = "";
 					try {
 						astField.value = JSON.stringify(iota.parse(inputField.value), null, 4);
-						jsField.value = iota.compile(inputField.value);
+						jsField.value = iota.compile(inputField.value, runtimeCheckbox.checked, boilerplateCheckbox.checked);
+
+						try {
+							eval(iota.compile(inputField.value, true, false));
+						} catch(e) {
+							resultField.value = e;
+						}
 					} catch (e) {
 						astField.value = e;
 						jsField.value = "";
 					}
-					// $('#result')[0].value = eval(js);
 				}
 
 				inputField.addEventListener("keyup", update);
+				runtimeCheckbox.addEventListener("change", update);
+				boilerplateCheckbox.addEventListener("change", update);
 
 				inputField.value = "fact := method(n, if (n == 0, 1, n * fact (n - 1)))\nwriteln(fact(5))";
 				update();
@@ -37,12 +53,15 @@
 		<h1>Iota Demo</h1>
 		<p>Iota is a source-to-source compiler that translates <a href="http://iolanguage.org/">Io</a> code into JavaScript.</p>
 		<textarea id="input" rows="5" cols="30" placeholder="Your Io code here"></textarea>
-		<br/>
+		<div id="options">
+			<input type="checkbox" id="runtimeCheckbox">Runtime library</input>
+			<input type="checkbox" id="boilerplateCheckbox">Boilerplate</input>
+		</div>
 		<textarea id="ast" readonly rows="15" cols="30" placeholder="Compiled JavaScript"></textarea>
 		<br/>
 		<textarea id="js" readonly rows="10" cols="30" placeholder="Syntax Tree"></textarea>
 		<br/>
-		<!-- <textarea id="result" readonly rows="1" cols="30" placeholder="Result"></textarea> -->
+		<textarea id="result" readonly rows="1" cols="30" placeholder="Result"></textarea>
 		<h6>Check out the project page <a href="https://github.com/dariusf/iota">here</a>.</h6>
 	</body>
 </html>

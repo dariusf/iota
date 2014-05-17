@@ -3,111 +3,44 @@ module.exports=require('GVqErh');
 },{}],"GVqErh":[function(require,module,exports){
 (function (process,__dirname){
 
-var fs = require('fs');
+
 var path = require('path');
 
 var compile = require('./src/compile');
 
 var args = process.argv.slice(2);
 var filename = args[0];
-var runtimeLibCode = ""
 
-var runningInNode = !!fs.readFile;
+var runtimeLibCode = "\r\nfunction IoObject (slots, proto) {\r\n\tthis.slots = slots || {};\r\n\tthis.proto = proto;\r\n}\r\nIoObject.prototype.findSlot = function (slot) {\r\n\tif (this === IoRootObject || this.slots.hasOwnProperty(slot)) {\r\n\t\treturn this.slots[slot];\r\n\t} else if (this.proto) {\r\n\t\treturn this.proto.findSlot(slot);\r\n\t} else {\r\n\t\treturn null;\r\n\t}\r\n}\r\nIoObject.prototype.send = function (message) {\r\n\tvar args = Array.prototype.slice.call(arguments, 1);\r\n\tvar slot = this.findSlot(message);\r\n\r\n\tif (slot) {\r\n\t\tif (typeof slot === 'function') {\r\n\t\t\treturn slot.apply(this, args);\r\n\t\t} else {\r\n\t\t\tif (slot.activate) {\r\n\t\t\t\treturn slot.activate.apply(slot, [this].concat(args));\r\n\t\t\t} else {\r\n\t\t\t\treturn slot;\r\n\t\t\t}\r\n\t\t}\r\n\t} else {\r\n\t\tconsole.log(\"unrecognized message '\" + message + \"'\");\r\n\t}\r\n};\r\n\r\nvar Lobby = new IoObject();\r\n\r\nvar IoRootObject = new IoObject({\r\n\ttype: \"Object\",\r\n\tclone: function (name, instance) {\r\n\t\tvar slots = {};\r\n\t\tif (!instance) {\r\n\t\t\tslots.type = name;\r\n\t\t}\r\n\t\treturn new IoObject(slots, this);\r\n\t},\r\n\tslotNames: function () {\r\n\t\treturn Object.keys(this.slots);\r\n\t},\r\n\tgetSlot: function (slotName) {\r\n\t\t// TODO this method only works for user-defined methods for now,\r\n\t\t// which are IoObjects and can respond to messages.\r\n\t\t// At the moment all primitive methods are raw functions and won't work.\r\n\t\tslotName = slotName.slots.value;\r\n\t\tvar slot = this.findSlot(slotName);\r\n\t\treturn slot;\r\n\t},\r\n\tsetSlot: function (slot, value) {\r\n\t\tslot = slot.slots.value;\r\n\t\tthis.slots[slot] = value;\r\n\t\treturn null; // IoNil\r\n\t},\r\n\tupdateSlot: function (slot, value) {\r\n\t\tif (this.slots[slot]) {\r\n\t\t\tthis.slots[slot] = value;\r\n\t\t} else {\r\n\t\t\tthrow \"cannot update slot '\" + slot + \"' that doesn't exist\";\r\n\t\t}\r\n\t},\r\n\ttoIoString: function () {\r\n\t\treturn IoStringWrapper(\"#\" + this.type + \" \" + this.send(\"slotNames\"));\r\n\t},\r\n\tproto: function () {\r\n\t\treturn this.proto;\r\n\t},\r\n\twriteln: function (thing) {\r\n\t\tconsole.log(thing.send('toIoString').slots.value);\r\n\t},\r\n\tmethod: function () {\r\n\t\tvar args = Array.prototype.slice.call(arguments);\r\n\t\tvar parameters = args.slice(0, args.length-1);\r\n\t\tvar thunk = args[args.length-1];\r\n\r\n\t\tvar method = IoMethod.send('clone');\r\n\t\tmethod.body = thunk;\r\n\r\n\t\tmethod.activate = function () {\r\n\t\t\tvar self = arguments[0];\r\n\t\t\tvar args = Array.prototype.slice.call(arguments, 1);\r\n\r\n\t\t\tvar locals = method.activate.locals || new IoObject({}, self);\r\n\t\t\tfor (var i=0; i<args.length; i++) {\r\n\t\t\t\tlocals.send('setSlot', IoStringWrapper(parameters[i]), args[i]);\r\n\t\t\t\tif (i > parameters) break; // over-application\r\n\t\t\t}\r\n\t\t\tlocals.send('setSlot', IoStringWrapper('self'), self);\r\n\r\n\t\t\treturn this.body.eval(locals);\r\n\t\t};\r\n\r\n\t\treturn method;\r\n\t},\r\n\tif: function (condition, conseq, alt) {\r\n\t\tif (condition === IoTrue) {\r\n\t\t\treturn conseq.eval();\r\n\t\t}\r\n\t\telse {\r\n\t\t\treturn alt.eval();\r\n\t\t}\r\n\t},\r\n\t\"==\": function (other) {\r\n\t\treturn IoBooleanWrapper(this === other);\r\n\t}\r\n}, Lobby);\r\n\r\nvar IoNumber = new IoObject({\r\n\t\"+\": function (other) {\r\n\t\treturn IoNumberWrapper(this.slots.value + other.slots.value);\r\n\t},\r\n\t\"*\": function (other) {\r\n\t\treturn IoNumberWrapper(this.slots.value * other.slots.value);\r\n\t},\r\n\t\"-\": function (other) {\r\n\t\treturn IoNumberWrapper(this.slots.value - other.slots.value);\r\n\t},\r\n\t\"==\": function (other) {\r\n\t\treturn IoBooleanWrapper(this.slots.value === other.slots.value);\r\n\t},\r\n\ttoIoString: function () {\r\n\t\treturn IoStringWrapper(this.slots.value);\r\n\t}\r\n}, IoObject);\r\nfunction IoNumberWrapper (value) {\r\n\treturn new IoObject({value: value}, IoNumber);\r\n}\r\n\r\nvar IoString = new IoObject({\r\n\tcharAt: function (n) {\r\n\t\tn = n.slots.value;\r\n\t\treturn IoStringWrapper(this.slots.value.charAt(n));\r\n\t},\r\n\ttoIoString: function () {\r\n\t\treturn this;\r\n\t}\r\n}, IoObject);\r\nfunction IoStringWrapper (value) {\r\n\treturn new IoObject({value: value}, IoString);\r\n}\r\n\r\nvar IoTrue = new IoObject({\r\n\tand: function (other) {\r\n\t\tif (other === this) return this;\r\n\t\telse return IoFalse;\r\n\t},\r\n\ttoIoString: function () {\r\n\t\treturn IoStringWrapper(\"true\");\r\n\t}\r\n}, IoObject);\r\n\r\nvar IoFalse = new IoObject({\r\n\tand: function (other) {\r\n\t\treturn IoFalse;\r\n\t},\r\n\ttoIoString: function () {\r\n\t\treturn IoStringWrapper(\"false\");\r\n\t}\r\n}, IoObject);\r\nfunction IoBooleanWrapper (bool) {\r\n\treturn bool ? IoTrue : IoFalse;\r\n}\r\n\r\nfunction IoThunk (f) {\r\n\treturn {f:f, eval: function() {return f.apply(null, Array.prototype.slice.call(arguments));}};\r\n}\r\n\r\nvar IoMethod = new IoObject({\r\n\ttype: \"Block\",\r\n\tactivate: null // defined later\r\n}, IoRootObject);\r\n\r\n// A proxy object for hooking into the messages of another\r\n// object and forwarding them, redirecting them, etc.\r\n// For internal use only.\r\n\r\nfunction IoProxy (forObject, action) {\r\n\tvar p = new IoObject({type: \"Proxy\"}, forObject);\r\n\tvar stop = false;\r\n\r\n\tp.send = function (message) {\r\n\t\tvar result = action.apply(this, arguments);\r\n\t\tif (stop) {\r\n\t\t\treturn result;\r\n\t\t} else {\r\n\t\t\treturn IoObject.prototype.send.apply(p, arguments);\r\n\t\t}\r\n\t};\r\n\tp.stopPrototypePropagation = function () {\r\n\t\tstop = true;\r\n\t};\r\n\treturn p;\r\n}\r\n\r\nLobby.slots['true'] = IoTrue;\r\nLobby.slots['false'] = IoFalse;\r\nLobby.slots['Object'] = IoRootObject;\r\nLobby.slots['Lobby'] = Lobby;\r\nLobby.proto = IoRootObject;\r\n\r\n";
+var boilerplateBefore = "function execute () {\r\n\tvar obj = this;\r\n\r\n\tvar localsProxy = new IoProxy(IoRootObject, function (message) {\r\n\t\tif (obj.hasOwnProperty(message)) {\r\n\t\t\tthis.stopPrototypePropagation();\r\n\t\t\tvar args = Array.prototype.slice.call(arguments, 1);\r\n\t\t\treturn obj[message].apply(obj, args);\r\n\t\t}\r\n\t});\r\n\r\n\tvar playerProxy = new IoProxy(IoRootObject, function (message) {\r\n\t\tif (message === 'chooseAction') {\r\n\r\n\t\t\tthis.stopPrototypePropagation();\r\n\r\n\t\t\tvar args = Array.prototype.slice.call(arguments, 1);\r\n\t\t\tvar slot = this.findSlot(message);\r\n\t\t\tslot.activate.locals = localsProxy;\r\n\r\n\t\t\t// unwrap arguments\r\n\t\t\targs = args.map(function (arg) {\r\n\t\t\t\tif (arg.type === 'Block') {\r\n\t\t\t\t\t// IoMethod\r\n\t\t\t\t\treturn function () {\r\n\t\t\t\t\t\treturn arg.activate.apply(arg, arguments);\r\n\t\t\t\t\t};\r\n\t\t\t\t} else {\r\n\t\t\t\t\t// IoStringWrapper / IoNumberWrapper / IoBooleanWrapper\r\n\t\t\t\t\treturn arg.slots.value;\r\n\t\t\t\t}\r\n\t\t\t});\r\n\r\n\t\t\treturn slot.activate.apply(slot, [IoRootObject].concat(args));\r\n\t\t}\r\n\t});\r\n\r\n\tLobby.slots['player'] = playerProxy;\r\n\r\n";
+var boilerplateAfter = "\r\n\r\n}";
 
-if (runningInNode) {
-	runtimeLibCode = fs.readFileSync(path.resolve(__dirname, 'src/lib.js'), {encoding: 'utf-8'});
+function compileCode(input, includeLibrary, boilerplate) {
+	var result = compile.compile(input);
 
-	if (filename) {
-		var data = fs.readFileSync(filename, {encoding: 'utf-8'});
-		console.log(JSON.stringify(compile.parse(data), null, 4));
-	}
+	result = (boilerplate ? boilerplateBefore : "") + result + (boilerplate ? boilerplateAfter : "");
+	result = includeLibrary ? (runtimeLibCode + result) : result;
+
+	return result.trim();
 }
-// else... we're running in the browser, which has its own means of acquiring lib.js
+
+function parse(input) {
+	return compile.parse(input);
+}
+
+if (filename) {
+	var code = fs.readFileSync(path.resolve(__dirname, filename), {encoding: 'utf-8'});
+	console.log(JSON.stringify(parse(code)));
+}
 
 module.exports = {
-	compile: function (input, includeLibrary, boilerplate) {
-		// never include the library when running in the browser
-		includeLibrary = runningInNode && includeLibrary;
-		
-		var result = compile.compile(input);
-		return includeLibrary ? (runtimeLibCode + '\n\n' + (boilerplate ? before + "\n\n" : "") + result + (boilerplate ? "\n" + after : "")).trim() : result.trim();
-	},
-	parse: function (input) {
-		return compile.parse(input);
-	}
+	compile: compileCode,
+	parse: parse
 };
-
-var before =
-	"function execute () {\n"
-	+ "	var obj = this;\n"
-	+ "\n"
-	+ "	var localsProxy = new IoProxy(IoRootObject, function (message) {\n"
-	+ "		if (obj.hasOwnProperty(message)) {\n"
-	+ "			this.stopPrototypePropagation();\n"
-	+ "			var args = Array.prototype.slice.call(arguments, 1);\n"
-	+ "			return obj[message].apply(obj, args);\n"
-	+ "		}\n"
-	+ "	});\n"
-	+ "\n"
-	+ "	var playerProxy = new IoProxy(IoRootObject, function (message) {\n"
-	+ "		if (message === 'chooseAction') {\n"
-	+ "\n"
-	+ "			this.stopPrototypePropagation();\n"
-	+ "\n"
-	+ "			var args = Array.prototype.slice.call(arguments, 1);\n"
-	+ "			var slot = this.findSlot(message);\n"
-	+ "			slot.activate.locals = localsProxy;\n"
-	+ "\n"
-	+ "			// unwrap arguments\n"
-	+ "			args = args.map(function (arg) {\n"
-	+ "				if (arg.type === 'Block') {\n"
-	+ "					// IoMethod\n"
-	+ "					return function () {\n"
-	+ "						return arg.activate.apply(arg, arguments);\n"
-	+ "					};\n"
-	+ "				} else {\n"
-	+ "					// IoStringWrapper / IoNumberWrapper / IoBooleanWrapper\n"
-	+ "					return arg.slots.value;\n"
-	+ "				}\n"
-	+ "			});\n"
-	+ "\n"
-	+ "			return slot.activate.apply(slot, [IoRootObject].concat(args));\n"
-	+ "		}\n"
-	+ "	});\n"
-	+ "\n"
-	+ "	Lobby.slots['player'] = playerProxy;";
-
-var after = "\n}";
-
 }).call(this,require("Zbi7gb"),"/")
-},{"./src/compile":25,"Zbi7gb":6,"fs":3,"path":5}],3:[function(require,module,exports){
+},{"./src/compile":22,"Zbi7gb":5,"path":4}],3:[function(require,module,exports){
 
 },{}],4:[function(require,module,exports){
-if (typeof Object.create === 'function') {
-  // implementation from standard node.js 'util' module
-  module.exports = function inherits(ctor, superCtor) {
-    ctor.super_ = superCtor
-    ctor.prototype = Object.create(superCtor.prototype, {
-      constructor: {
-        value: ctor,
-        enumerable: false,
-        writable: true,
-        configurable: true
-      }
-    });
-  };
-} else {
-  // old school shim for old browsers
-  module.exports = function inherits(ctor, superCtor) {
-    ctor.super_ = superCtor
-    var TempCtor = function () {}
-    TempCtor.prototype = superCtor.prototype
-    ctor.prototype = new TempCtor()
-    ctor.prototype.constructor = ctor
-  }
-}
-
-},{}],5:[function(require,module,exports){
 (function (process){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -335,7 +268,7 @@ var substr = 'ab'.substr(-1) === 'b'
 ;
 
 }).call(this,require("Zbi7gb"))
-},{"Zbi7gb":6}],6:[function(require,module,exports){
+},{"Zbi7gb":5}],5:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -400,604 +333,7 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 
-},{}],7:[function(require,module,exports){
-module.exports = function isBuffer(arg) {
-  return arg && typeof arg === 'object'
-    && typeof arg.copy === 'function'
-    && typeof arg.fill === 'function'
-    && typeof arg.readUInt8 === 'function';
-}
-},{}],8:[function(require,module,exports){
-(function (process,global){
-// Copyright Joyent, Inc. and other Node contributors.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a
-// copy of this software and associated documentation files (the
-// "Software"), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to permit
-// persons to whom the Software is furnished to do so, subject to the
-// following conditions:
-//
-// The above copyright notice and this permission notice shall be included
-// in all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
-// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-// USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-var formatRegExp = /%[sdj%]/g;
-exports.format = function(f) {
-  if (!isString(f)) {
-    var objects = [];
-    for (var i = 0; i < arguments.length; i++) {
-      objects.push(inspect(arguments[i]));
-    }
-    return objects.join(' ');
-  }
-
-  var i = 1;
-  var args = arguments;
-  var len = args.length;
-  var str = String(f).replace(formatRegExp, function(x) {
-    if (x === '%%') return '%';
-    if (i >= len) return x;
-    switch (x) {
-      case '%s': return String(args[i++]);
-      case '%d': return Number(args[i++]);
-      case '%j':
-        try {
-          return JSON.stringify(args[i++]);
-        } catch (_) {
-          return '[Circular]';
-        }
-      default:
-        return x;
-    }
-  });
-  for (var x = args[i]; i < len; x = args[++i]) {
-    if (isNull(x) || !isObject(x)) {
-      str += ' ' + x;
-    } else {
-      str += ' ' + inspect(x);
-    }
-  }
-  return str;
-};
-
-
-// Mark that a method should not be used.
-// Returns a modified function which warns once by default.
-// If --no-deprecation is set, then it is a no-op.
-exports.deprecate = function(fn, msg) {
-  // Allow for deprecating things in the process of starting up.
-  if (isUndefined(global.process)) {
-    return function() {
-      return exports.deprecate(fn, msg).apply(this, arguments);
-    };
-  }
-
-  if (process.noDeprecation === true) {
-    return fn;
-  }
-
-  var warned = false;
-  function deprecated() {
-    if (!warned) {
-      if (process.throwDeprecation) {
-        throw new Error(msg);
-      } else if (process.traceDeprecation) {
-        console.trace(msg);
-      } else {
-        console.error(msg);
-      }
-      warned = true;
-    }
-    return fn.apply(this, arguments);
-  }
-
-  return deprecated;
-};
-
-
-var debugs = {};
-var debugEnviron;
-exports.debuglog = function(set) {
-  if (isUndefined(debugEnviron))
-    debugEnviron = process.env.NODE_DEBUG || '';
-  set = set.toUpperCase();
-  if (!debugs[set]) {
-    if (new RegExp('\\b' + set + '\\b', 'i').test(debugEnviron)) {
-      var pid = process.pid;
-      debugs[set] = function() {
-        var msg = exports.format.apply(exports, arguments);
-        console.error('%s %d: %s', set, pid, msg);
-      };
-    } else {
-      debugs[set] = function() {};
-    }
-  }
-  return debugs[set];
-};
-
-
-/**
- * Echos the value of a value. Trys to print the value out
- * in the best way possible given the different types.
- *
- * @param {Object} obj The object to print out.
- * @param {Object} opts Optional options object that alters the output.
- */
-/* legacy: obj, showHidden, depth, colors*/
-function inspect(obj, opts) {
-  // default options
-  var ctx = {
-    seen: [],
-    stylize: stylizeNoColor
-  };
-  // legacy...
-  if (arguments.length >= 3) ctx.depth = arguments[2];
-  if (arguments.length >= 4) ctx.colors = arguments[3];
-  if (isBoolean(opts)) {
-    // legacy...
-    ctx.showHidden = opts;
-  } else if (opts) {
-    // got an "options" object
-    exports._extend(ctx, opts);
-  }
-  // set default options
-  if (isUndefined(ctx.showHidden)) ctx.showHidden = false;
-  if (isUndefined(ctx.depth)) ctx.depth = 2;
-  if (isUndefined(ctx.colors)) ctx.colors = false;
-  if (isUndefined(ctx.customInspect)) ctx.customInspect = true;
-  if (ctx.colors) ctx.stylize = stylizeWithColor;
-  return formatValue(ctx, obj, ctx.depth);
-}
-exports.inspect = inspect;
-
-
-// http://en.wikipedia.org/wiki/ANSI_escape_code#graphics
-inspect.colors = {
-  'bold' : [1, 22],
-  'italic' : [3, 23],
-  'underline' : [4, 24],
-  'inverse' : [7, 27],
-  'white' : [37, 39],
-  'grey' : [90, 39],
-  'black' : [30, 39],
-  'blue' : [34, 39],
-  'cyan' : [36, 39],
-  'green' : [32, 39],
-  'magenta' : [35, 39],
-  'red' : [31, 39],
-  'yellow' : [33, 39]
-};
-
-// Don't use 'blue' not visible on cmd.exe
-inspect.styles = {
-  'special': 'cyan',
-  'number': 'yellow',
-  'boolean': 'yellow',
-  'undefined': 'grey',
-  'null': 'bold',
-  'string': 'green',
-  'date': 'magenta',
-  // "name": intentionally not styling
-  'regexp': 'red'
-};
-
-
-function stylizeWithColor(str, styleType) {
-  var style = inspect.styles[styleType];
-
-  if (style) {
-    return '\u001b[' + inspect.colors[style][0] + 'm' + str +
-           '\u001b[' + inspect.colors[style][1] + 'm';
-  } else {
-    return str;
-  }
-}
-
-
-function stylizeNoColor(str, styleType) {
-  return str;
-}
-
-
-function arrayToHash(array) {
-  var hash = {};
-
-  array.forEach(function(val, idx) {
-    hash[val] = true;
-  });
-
-  return hash;
-}
-
-
-function formatValue(ctx, value, recurseTimes) {
-  // Provide a hook for user-specified inspect functions.
-  // Check that value is an object with an inspect function on it
-  if (ctx.customInspect &&
-      value &&
-      isFunction(value.inspect) &&
-      // Filter out the util module, it's inspect function is special
-      value.inspect !== exports.inspect &&
-      // Also filter out any prototype objects using the circular check.
-      !(value.constructor && value.constructor.prototype === value)) {
-    var ret = value.inspect(recurseTimes, ctx);
-    if (!isString(ret)) {
-      ret = formatValue(ctx, ret, recurseTimes);
-    }
-    return ret;
-  }
-
-  // Primitive types cannot have properties
-  var primitive = formatPrimitive(ctx, value);
-  if (primitive) {
-    return primitive;
-  }
-
-  // Look up the keys of the object.
-  var keys = Object.keys(value);
-  var visibleKeys = arrayToHash(keys);
-
-  if (ctx.showHidden) {
-    keys = Object.getOwnPropertyNames(value);
-  }
-
-  // IE doesn't make error fields non-enumerable
-  // http://msdn.microsoft.com/en-us/library/ie/dww52sbt(v=vs.94).aspx
-  if (isError(value)
-      && (keys.indexOf('message') >= 0 || keys.indexOf('description') >= 0)) {
-    return formatError(value);
-  }
-
-  // Some type of object without properties can be shortcutted.
-  if (keys.length === 0) {
-    if (isFunction(value)) {
-      var name = value.name ? ': ' + value.name : '';
-      return ctx.stylize('[Function' + name + ']', 'special');
-    }
-    if (isRegExp(value)) {
-      return ctx.stylize(RegExp.prototype.toString.call(value), 'regexp');
-    }
-    if (isDate(value)) {
-      return ctx.stylize(Date.prototype.toString.call(value), 'date');
-    }
-    if (isError(value)) {
-      return formatError(value);
-    }
-  }
-
-  var base = '', array = false, braces = ['{', '}'];
-
-  // Make Array say that they are Array
-  if (isArray(value)) {
-    array = true;
-    braces = ['[', ']'];
-  }
-
-  // Make functions say that they are functions
-  if (isFunction(value)) {
-    var n = value.name ? ': ' + value.name : '';
-    base = ' [Function' + n + ']';
-  }
-
-  // Make RegExps say that they are RegExps
-  if (isRegExp(value)) {
-    base = ' ' + RegExp.prototype.toString.call(value);
-  }
-
-  // Make dates with properties first say the date
-  if (isDate(value)) {
-    base = ' ' + Date.prototype.toUTCString.call(value);
-  }
-
-  // Make error with message first say the error
-  if (isError(value)) {
-    base = ' ' + formatError(value);
-  }
-
-  if (keys.length === 0 && (!array || value.length == 0)) {
-    return braces[0] + base + braces[1];
-  }
-
-  if (recurseTimes < 0) {
-    if (isRegExp(value)) {
-      return ctx.stylize(RegExp.prototype.toString.call(value), 'regexp');
-    } else {
-      return ctx.stylize('[Object]', 'special');
-    }
-  }
-
-  ctx.seen.push(value);
-
-  var output;
-  if (array) {
-    output = formatArray(ctx, value, recurseTimes, visibleKeys, keys);
-  } else {
-    output = keys.map(function(key) {
-      return formatProperty(ctx, value, recurseTimes, visibleKeys, key, array);
-    });
-  }
-
-  ctx.seen.pop();
-
-  return reduceToSingleString(output, base, braces);
-}
-
-
-function formatPrimitive(ctx, value) {
-  if (isUndefined(value))
-    return ctx.stylize('undefined', 'undefined');
-  if (isString(value)) {
-    var simple = '\'' + JSON.stringify(value).replace(/^"|"$/g, '')
-                                             .replace(/'/g, "\\'")
-                                             .replace(/\\"/g, '"') + '\'';
-    return ctx.stylize(simple, 'string');
-  }
-  if (isNumber(value))
-    return ctx.stylize('' + value, 'number');
-  if (isBoolean(value))
-    return ctx.stylize('' + value, 'boolean');
-  // For some reason typeof null is "object", so special case here.
-  if (isNull(value))
-    return ctx.stylize('null', 'null');
-}
-
-
-function formatError(value) {
-  return '[' + Error.prototype.toString.call(value) + ']';
-}
-
-
-function formatArray(ctx, value, recurseTimes, visibleKeys, keys) {
-  var output = [];
-  for (var i = 0, l = value.length; i < l; ++i) {
-    if (hasOwnProperty(value, String(i))) {
-      output.push(formatProperty(ctx, value, recurseTimes, visibleKeys,
-          String(i), true));
-    } else {
-      output.push('');
-    }
-  }
-  keys.forEach(function(key) {
-    if (!key.match(/^\d+$/)) {
-      output.push(formatProperty(ctx, value, recurseTimes, visibleKeys,
-          key, true));
-    }
-  });
-  return output;
-}
-
-
-function formatProperty(ctx, value, recurseTimes, visibleKeys, key, array) {
-  var name, str, desc;
-  desc = Object.getOwnPropertyDescriptor(value, key) || { value: value[key] };
-  if (desc.get) {
-    if (desc.set) {
-      str = ctx.stylize('[Getter/Setter]', 'special');
-    } else {
-      str = ctx.stylize('[Getter]', 'special');
-    }
-  } else {
-    if (desc.set) {
-      str = ctx.stylize('[Setter]', 'special');
-    }
-  }
-  if (!hasOwnProperty(visibleKeys, key)) {
-    name = '[' + key + ']';
-  }
-  if (!str) {
-    if (ctx.seen.indexOf(desc.value) < 0) {
-      if (isNull(recurseTimes)) {
-        str = formatValue(ctx, desc.value, null);
-      } else {
-        str = formatValue(ctx, desc.value, recurseTimes - 1);
-      }
-      if (str.indexOf('\n') > -1) {
-        if (array) {
-          str = str.split('\n').map(function(line) {
-            return '  ' + line;
-          }).join('\n').substr(2);
-        } else {
-          str = '\n' + str.split('\n').map(function(line) {
-            return '   ' + line;
-          }).join('\n');
-        }
-      }
-    } else {
-      str = ctx.stylize('[Circular]', 'special');
-    }
-  }
-  if (isUndefined(name)) {
-    if (array && key.match(/^\d+$/)) {
-      return str;
-    }
-    name = JSON.stringify('' + key);
-    if (name.match(/^"([a-zA-Z_][a-zA-Z_0-9]*)"$/)) {
-      name = name.substr(1, name.length - 2);
-      name = ctx.stylize(name, 'name');
-    } else {
-      name = name.replace(/'/g, "\\'")
-                 .replace(/\\"/g, '"')
-                 .replace(/(^"|"$)/g, "'");
-      name = ctx.stylize(name, 'string');
-    }
-  }
-
-  return name + ': ' + str;
-}
-
-
-function reduceToSingleString(output, base, braces) {
-  var numLinesEst = 0;
-  var length = output.reduce(function(prev, cur) {
-    numLinesEst++;
-    if (cur.indexOf('\n') >= 0) numLinesEst++;
-    return prev + cur.replace(/\u001b\[\d\d?m/g, '').length + 1;
-  }, 0);
-
-  if (length > 60) {
-    return braces[0] +
-           (base === '' ? '' : base + '\n ') +
-           ' ' +
-           output.join(',\n  ') +
-           ' ' +
-           braces[1];
-  }
-
-  return braces[0] + base + ' ' + output.join(', ') + ' ' + braces[1];
-}
-
-
-// NOTE: These type checking functions intentionally don't use `instanceof`
-// because it is fragile and can be easily faked with `Object.create()`.
-function isArray(ar) {
-  return Array.isArray(ar);
-}
-exports.isArray = isArray;
-
-function isBoolean(arg) {
-  return typeof arg === 'boolean';
-}
-exports.isBoolean = isBoolean;
-
-function isNull(arg) {
-  return arg === null;
-}
-exports.isNull = isNull;
-
-function isNullOrUndefined(arg) {
-  return arg == null;
-}
-exports.isNullOrUndefined = isNullOrUndefined;
-
-function isNumber(arg) {
-  return typeof arg === 'number';
-}
-exports.isNumber = isNumber;
-
-function isString(arg) {
-  return typeof arg === 'string';
-}
-exports.isString = isString;
-
-function isSymbol(arg) {
-  return typeof arg === 'symbol';
-}
-exports.isSymbol = isSymbol;
-
-function isUndefined(arg) {
-  return arg === void 0;
-}
-exports.isUndefined = isUndefined;
-
-function isRegExp(re) {
-  return isObject(re) && objectToString(re) === '[object RegExp]';
-}
-exports.isRegExp = isRegExp;
-
-function isObject(arg) {
-  return typeof arg === 'object' && arg !== null;
-}
-exports.isObject = isObject;
-
-function isDate(d) {
-  return isObject(d) && objectToString(d) === '[object Date]';
-}
-exports.isDate = isDate;
-
-function isError(e) {
-  return isObject(e) &&
-      (objectToString(e) === '[object Error]' || e instanceof Error);
-}
-exports.isError = isError;
-
-function isFunction(arg) {
-  return typeof arg === 'function';
-}
-exports.isFunction = isFunction;
-
-function isPrimitive(arg) {
-  return arg === null ||
-         typeof arg === 'boolean' ||
-         typeof arg === 'number' ||
-         typeof arg === 'string' ||
-         typeof arg === 'symbol' ||  // ES6 symbol
-         typeof arg === 'undefined';
-}
-exports.isPrimitive = isPrimitive;
-
-exports.isBuffer = require('./support/isBuffer');
-
-function objectToString(o) {
-  return Object.prototype.toString.call(o);
-}
-
-
-function pad(n) {
-  return n < 10 ? '0' + n.toString(10) : n.toString(10);
-}
-
-
-var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep',
-              'Oct', 'Nov', 'Dec'];
-
-// 26 Feb 16:19:34
-function timestamp() {
-  var d = new Date();
-  var time = [pad(d.getHours()),
-              pad(d.getMinutes()),
-              pad(d.getSeconds())].join(':');
-  return [d.getDate(), months[d.getMonth()], time].join(' ');
-}
-
-
-// log is just a thin wrapper to console.log that prepends a timestamp
-exports.log = function() {
-  console.log('%s - %s', timestamp(), exports.format.apply(exports, arguments));
-};
-
-
-/**
- * Inherit the prototype methods from one constructor into another.
- *
- * The Function.prototype.inherits from lang.js rewritten as a standalone
- * function (not on Function.prototype). NOTE: If this file is to be loaded
- * during bootstrapping this function needs to be rewritten using some native
- * functions as prototype setup using normal JavaScript does not work as
- * expected during bootstrapping (see mirror.js in r114903).
- *
- * @param {function} ctor Constructor function which needs to inherit the
- *     prototype.
- * @param {function} superCtor Constructor function to inherit prototype from.
- */
-exports.inherits = require('inherits');
-
-exports._extend = function(origin, add) {
-  // Don't do anything if add isn't an object
-  if (!add || !isObject(add)) return origin;
-
-  var keys = Object.keys(add);
-  var i = keys.length;
-  while (i--) {
-    origin[keys[i]] = add[keys[i]];
-  }
-  return origin;
-};
-
-function hasOwnProperty(obj, prop) {
-  return Object.prototype.hasOwnProperty.call(obj, prop);
-}
-
-}).call(this,require("Zbi7gb"),typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":7,"Zbi7gb":6,"inherits":4}],9:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 (function (global){
 /*
   Copyright (C) 2012-2013 Yusuke Suzuki <utatane.tea@gmail.com>
@@ -2525,7 +1861,7 @@ function hasOwnProperty(obj, prop) {
             break;
 
         default:
-            throw new Error('Unknown expression type: ' + expr.type);
+            throw new Error('Unknown expression type: ' + JSON.stringify(expr));
         }
 
         if (extra.comment) {
@@ -3208,7 +2544,7 @@ function hasOwnProperty(obj, prop) {
 /* vim: set sw=4 ts=4 et tw=80 : */
 
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./package.json":24,"estraverse":10,"esutils":13,"source-map":14}],10:[function(require,module,exports){
+},{"./package.json":21,"estraverse":7,"esutils":10,"source-map":11}],7:[function(require,module,exports){
 /*
   Copyright (C) 2012-2013 Yusuke Suzuki <utatane.tea@gmail.com>
   Copyright (C) 2012 Ariya Hidayat <ariya.hidayat@gmail.com>
@@ -3898,7 +3234,7 @@ function hasOwnProperty(obj, prop) {
 }));
 /* vim: set sw=4 ts=4 et tw=80 : */
 
-},{}],11:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 /*
   Copyright (C) 2013 Yusuke Suzuki <utatane.tea@gmail.com>
 
@@ -3990,7 +3326,7 @@ function hasOwnProperty(obj, prop) {
 }());
 /* vim: set sw=4 ts=4 et tw=80 : */
 
-},{}],12:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 /*
   Copyright (C) 2013 Yusuke Suzuki <utatane.tea@gmail.com>
 
@@ -4109,7 +3445,7 @@ function hasOwnProperty(obj, prop) {
 }());
 /* vim: set sw=4 ts=4 et tw=80 : */
 
-},{"./code":11}],13:[function(require,module,exports){
+},{"./code":8}],10:[function(require,module,exports){
 /*
   Copyright (C) 2013 Yusuke Suzuki <utatane.tea@gmail.com>
 
@@ -4143,7 +3479,7 @@ function hasOwnProperty(obj, prop) {
 }());
 /* vim: set sw=4 ts=4 et tw=80 : */
 
-},{"./code":11,"./keyword":12}],14:[function(require,module,exports){
+},{"./code":8,"./keyword":9}],11:[function(require,module,exports){
 /*
  * Copyright 2009-2011 Mozilla Foundation and contributors
  * Licensed under the New BSD license. See LICENSE.txt or:
@@ -4153,7 +3489,7 @@ exports.SourceMapGenerator = require('./source-map/source-map-generator').Source
 exports.SourceMapConsumer = require('./source-map/source-map-consumer').SourceMapConsumer;
 exports.SourceNode = require('./source-map/source-node').SourceNode;
 
-},{"./source-map/source-map-consumer":19,"./source-map/source-map-generator":20,"./source-map/source-node":21}],15:[function(require,module,exports){
+},{"./source-map/source-map-consumer":16,"./source-map/source-map-generator":17,"./source-map/source-node":18}],12:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -4252,7 +3588,7 @@ define(function (require, exports, module) {
 
 });
 
-},{"./util":22,"amdefine":23}],16:[function(require,module,exports){
+},{"./util":19,"amdefine":20}],13:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -4398,7 +3734,7 @@ define(function (require, exports, module) {
 
 });
 
-},{"./base64":17,"amdefine":23}],17:[function(require,module,exports){
+},{"./base64":14,"amdefine":20}],14:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -4442,7 +3778,7 @@ define(function (require, exports, module) {
 
 });
 
-},{"amdefine":23}],18:[function(require,module,exports){
+},{"amdefine":20}],15:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -4525,7 +3861,7 @@ define(function (require, exports, module) {
 
 });
 
-},{"amdefine":23}],19:[function(require,module,exports){
+},{"amdefine":20}],16:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -5005,7 +4341,7 @@ define(function (require, exports, module) {
 
 });
 
-},{"./array-set":15,"./base64-vlq":16,"./binary-search":18,"./util":22,"amdefine":23}],20:[function(require,module,exports){
+},{"./array-set":12,"./base64-vlq":13,"./binary-search":15,"./util":19,"amdefine":20}],17:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -5404,7 +4740,7 @@ define(function (require, exports, module) {
 
 });
 
-},{"./array-set":15,"./base64-vlq":16,"./util":22,"amdefine":23}],21:[function(require,module,exports){
+},{"./array-set":12,"./base64-vlq":13,"./util":19,"amdefine":20}],18:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -5793,7 +5129,7 @@ define(function (require, exports, module) {
 
 });
 
-},{"./source-map-generator":20,"./util":22,"amdefine":23}],22:[function(require,module,exports){
+},{"./source-map-generator":17,"./util":19,"amdefine":20}],19:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -6097,7 +5433,7 @@ define(function (require, exports, module) {
 
 });
 
-},{"amdefine":23}],23:[function(require,module,exports){
+},{"amdefine":20}],20:[function(require,module,exports){
 (function (process,__filename){
 /** vim: et:ts=4:sw=4:sts=4
  * @license amdefine 0.1.0 Copyright (c) 2011, The Dojo Foundation All Rights Reserved.
@@ -6400,7 +5736,7 @@ function amdefine(module, requireFn) {
 module.exports = amdefine;
 
 }).call(this,require("Zbi7gb"),"/node_modules\\escodegen\\node_modules\\source-map\\node_modules\\amdefine\\amdefine.js")
-},{"Zbi7gb":6,"path":5}],24:[function(require,module,exports){
+},{"Zbi7gb":5,"path":4}],21:[function(require,module,exports){
 module.exports={
   "name": "escodegen",
   "description": "ECMAScript code generator",
@@ -6470,220 +5806,181 @@ module.exports={
   "_from": "escodegen@~1.3.2"
 }
 
-},{}],25:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 
 var escodegen = require('escodegen');
 
 var parser = require('./parser');
+var pratt = require('./pratt');
 
-function preprocessor (code) {
-	// code = code.replace(/Object/g, 'IoRootObject');
-	code = code.replace(/(\r?\n)+/g, '\n').trim();
-	return code;
+function applyMacros (ast) {
+
+	// An AST is a list of chains
+	// A chain is a list of messages
+	// A message can have arguments which are messages or chains
+
+	infixOperatorMacro(ast);
+	assignmentOperatorMacro(ast);
+
+	return ast;
 }
 
-var pratt = require('./pratt');
-function applyMacros (ast) {
-	// an ast is a list of chains
-	// a chain is a list of messages
-	// a messages can have arguments which are messages or chains
+function findChainsInAST (nodelist) {
 
-	// infix op macros
-	// walk every chain and rearrange it into proper chains based on precedence
+	// Performs a post-order traversal of an AST and returns
+	// a list of references to all chain objects
 
-	// performs a post-order traversal of the AST and selects all the chains
-	function findChains (nodelist) {
-		var allChains = [];
-		function helper (nodelist) {
-			nodelist.forEach(function (node) {
-				if (node.type === 'chain') {
-					node.value.forEach(function (message) {
-						helper(message.value.arguments);
+	var allChains = [];
+	function helper (nodelist) {
+		nodelist.forEach(function (node) {
+			if (node.type === 'chain') {
+				node.value.forEach(function (message) {
+					message.value.arguments.forEach(function (arg) {
+						helper(arg);
 					});
-					allChains.push(node);
-				}
-			});
-		}
-		helper(nodelist);
-		return allChains;
+				});
+				allChains.push(node);
+			}
+		});
 	}
-	var chains = findChains(ast).filter(function (chain) {
-		if (chain.value.length <= 1) return false;
-		var hasAnOperator = chain.value.filter(function (msg) {
-			return pratt.isOperator(msg.value.value.value) && msg.value.arguments.length === 0;
-		}).length > 0;
+	helper(nodelist);
+	return allChains;
+}
 
-		return hasAnOperator;
-	});
+function assignmentOperatorMacro (ast) {
 
+	// Rewrites messages containing assignment operators
+	// with setSlot messages
 
-	chains.forEach(function (chain) {
-		chain.value = pratt.parse(chain).value;
-	});
+	var chains = findChainsInAST(ast);
 
-	// assignment operator macros
-
-	var chains = findChains(ast);
 	while (chains.length > 0) {
 		var chain = chains.pop();
 
 		for (var i=0; i<chain.value.length; i++) {
 			var message = chain.value[i];
-			if (message.value.value.value === ":=") {
 
-				// pick the previous two elements
+			// Find an assignment operator
+			if (message.value.value.value !== ":=") continue;
 
-				var target, slotName;
-				if (i === 0) {
-					throw new Error("SyntaxError: no target for assignment operator");
-				} else if (i === 1) {
-					target = {
-						type: 'message',
-						value: {
-							type: 'symbol',
-							value: {
-								type: 'identifier',
-								value: 'Lobby'
-							},
-							arguments: []
-						}
-					};
-					slotName = chain.value[0];
-				} else {
-					target = chain.value[i-2];
-					slotName = chain.value[i-1];
-				}
+			// Pick the previous two elements in the chain.
+			// They are the target and the slot on the target that
+			// is being assigned:
+			// a b := c
 
-				// rewrite the chain
+			var target, slotName;
 
-				// var current = chain.value[i];
-				// var prevtwo = chain.value.slice(Math.max(i-2,0), i);
-				var beforethose = chain.value.slice(0, Math.max(i-2, 0));
-				var after = chain.value.slice(i+1, chain.value.length);
+			if (i === 0) {
+				// := b
+				throw new Error("SyntaxError: no target for assignment operator");
+			} else if (i === 1) {
+				// a := b
 
-				var rhs = {type: 'chain', value: after};
-				var message = {
-					type: 'chain',
-					value: [{
-						type: 'message',
-						value: {
-							type: 'symbol',
-							value: {
-								type: 'string',
-								value: slotName.value.value.value
-							},
-							arguments: []
-						}
-					}]
-				};
-				var setSlot = {
+				// target defaults to Lobby
+				// TODO: even in method bodies! this has to be
+				// done during compilation when scope is known
+
+				target = {
 					type: 'message',
 					value: {
 						type: 'symbol',
 						value: {
 							type: 'identifier',
-							value: 'setSlot'
+							value: 'Lobby'
 						},
-						arguments: [message, rhs]
+						arguments: []
 					}
 				};
-
-				chain.value = beforethose.concat([target, setSlot]);
-
-				// push the newly created one into the queue
-				chains.push(rhs);
-
-				break;
+				slotName = chain.value[0];
+			} else {
+				// a b := c
+				target = chain.value[i-2];
+				slotName = chain.value[i-1];
 			}
+
+			// rewrite the chain
+
+			// var current = chain.value[i];
+			// var prevtwo = chain.value.slice(Math.max(i-2,0), i);
+			var beforethose = chain.value.slice(0, Math.max(i-2, 0));
+			var after = chain.value.slice(i+1, chain.value.length);
+
+			var rhs = {type: 'chain', value: after};
+			var message = {
+				type: 'chain',
+				value: [{
+					type: 'message',
+					value: {
+						type: 'symbol',
+						value: {
+							type: 'string',
+							value: slotName.value.value.value
+						},
+						arguments: []
+					}
+				}]
+			};
+			var setSlot = {
+				type: 'message',
+				value: {
+					type: 'symbol',
+					value: {
+						type: 'identifier',
+						value: 'setSlot'
+					},
+					arguments: [[message], [rhs]]
+				}
+			};
+
+			chain.value = beforethose.concat([target, setSlot]);
+
+			// Recurse on the newly created chain in case it contains
+			// more operators
+			chains.push(rhs);
+
+			break;
+		
 		}
-
 	}
-	return ast;
-
-// 	function modifyChains (node) {
-// 		if (node.type === "chain") {
-// 			console.log("=>");
-// 			print(node);
-// 			print(r);
-			
-// 			// r.value
-// 			// r.value = r.value.map(modifyChains);
-// var r = node;
-// 			// for each message in the chain
-// 			console.log('done procssing chain', JSON.stringify(node) === JSON.stringify(r));
-
-// 			var r = {
-// 				type: 'chain',
-// 				value: r.value.map(function(msg) {
-// 					// if (msg.type === 'message') {
-
-// 					// }
-// 					return {
-// 						type: 'message',
-// 						value: {
-// 							type: 'symbol',
-// 							value: msg.value.value,
-// 							arguments: msg.value.arguments.map(function (arg) {
-// 								console.log('======ARG=======');
-// 								print(arg);
-// 								return modifyChains(arg);
-// 								// return arg.type === 'chain';
-// 							})
-// 						}
-// 					};
-// 				})
-// 			};
-
-// 			var r = pratt.parse(node);
-
-// 			return r;
-// 		// } else if (node.type === "message") {
-// 		// 	// var r = node.value.arguments.map(modifyChains);
-// 		// 	// node.value.arguments = r;
-// 		// 	// dont mutate
-// 		// 	return {type: 'message', value: node.value};
-// 		} else {
-// 			console.log('macros: unrecognized ast type ', node.type);
-// 		}
-// 	}
-
-
-	// ast = ast.map(modifyChains);
-	// ast[0] = pratt.parse(ast[0]);
-	// assignment op macros
 }
 
+function infixOperatorMacro (ast) {
 
-// function parseWithRuntime (code) {
-// 	return runtimeLibCode + "\n\n" + parse(code) + ";";
-// }
+	// Rearranges all chains containing operators into properly
+	// nested messages based on precedence
+
+	var chains = findChainsInAST(ast).filter(function (chain) {
+
+		// Skip chains that cannot possibly contain operators
+		if (chain.value.length <= 1) return false;
+
+		// A chain will be processed if it contains at least one operator
+		// message with no arguments (meaning it has not been processed yet)
+		var hasAnOperator = chain.value.filter(function (message) {
+			return pratt.isOperator(message.value.value.value) && message.value.arguments.length === 0;
+		}).length > 0;
+
+		return hasAnOperator;
+	});
+
+	chains.forEach(function (chain) {
+		chain.value = pratt.parse(chain).value;
+	});
+}
 
 function parse (code) {
-	code = preprocessor(code);
-	var ast = parser.parse(code);
 
-	// console.log("-------before macro--------\n");
-	// print(ast);
+	var ast = parser.parse(code);
 
 	ast = applyMacros(ast);
 
-	// console.log("-------after macro--------\n");
-	// print(ast);
-
 	var generated = [];
-	for (var i=0; i<ast.length; i++) {
-		ast[i] = compile(ast[i], {type: "Identifier", name: "Lobby"}, {type: "Identifier", name: "Lobby"});
-		generated.push(ast[i]);
-	}
+	ast.forEach(function (chain) {
+		chain = compile(chain, {type: "Identifier", name: "Lobby"}, {type: "Identifier", name: "Lobby"});
+		generated.push(chain);
+	});
 	
-	// console.log("-------parsed--------\n");
-	// print(ast);
-	// console.log(ast);
-	//print(ast);
-
-	// var generated = emit(ast);
-
-	// generated = generated.join(';\n');
+	// TODO make this a sequence statement?
 	generated = {
 		type: "Program",
 		body: generated.map(function (expr) {
@@ -6694,16 +5991,6 @@ function parse (code) {
 		})
 	};
 
-	// console.log("\n" + generated);
-
-
-// 	console.log(escodegen.generate({
-//   type: 'BinaryExpression',
-//   operator: '+',
-//   left: { type: 'Literal', value: 40 },
-//   right: { type: 'Literal', value: 2 }
-// }));;
-
 	return generated;
 }
 
@@ -6711,91 +5998,137 @@ function parseAndEmit (code) {
 	return escodegen.generate(parse(code));
 }
 
+function getEnclosingRange (exprlist) {
+	function priority (s, c) {
+		// line number must be smaller
+		// if line number is tied, column must be smaller
+	    return c.line < s.line ? c : (c.line === s.line && c.column < s.column ? c : s);
+	};
+
+	var inf = {
+	    line: Infinity,
+	    column: Infinity
+	};
+
+	var locInfo = exprlist
+		.map(function(node) {return node.loc;})
+		.filter(function(node) {return !!node;});
+
+	if (locInfo.length > 0) {
+		var start = locInfo.map(function(node) {return node.start;}).reduce(priority, inf);
+		var end = locInfo.map(function(node) {return node.end;}).reduce(priority, inf);
+
+		return {start: start, end: end};
+	}
+
+	return null;
+}
+
 function compile (ast, receiver, localContext) {
 	var result = {};
 
 	if (ast.type === 'chain') {
-		//  a chain is a series of left-associative messages
+		//  A chain is a series of left-associative messages
 		var chain = ast.value;
 		var current;
-		// receiver = receiver === 'locals' || localContext ? 'locals' : 'Lobby'; // when starting a chain, start from the beginning
 
 		for (var i=0; i<chain.length; i++) {
-			// the receiver of a message in a chain is the preceding one
+			// The receiver of a message in a chain is the preceding one
 			current = chain[i];
 			current = compile(current, receiver, localContext);
 			receiver = current;
 		}
 		return current;
-	} else if (ast.type === 'message') {
-		// the symbol is the name of the message
+	}
+	else if (ast.type === 'message') {
+		// The symbol is the name of the message
 		var symbol = ast.value;
 
-		var symbolValue;
 		if (symbol.value.type === 'number') {
 			result = {
+				loc: symbol.loc,
 				type: "CallExpression",
 				callee: {
+					loc: symbol.loc,
 					type: "Identifier",
 					name: "IoNumberWrapper"
 				},
-				arguments: [{type: "Literal", value: +symbol.value.value}]
+				arguments: [{type: "Literal", value: +symbol.value.value, loc: symbol.loc}]
 			};
 		}
 		else if (symbol.value.type === 'string') {
 			result = {
+				loc: symbol.loc,
 				type: "CallExpression",
 				callee: {
+					loc: symbol.loc,
 					type: "Identifier",
 					name: "IoStringWrapper"
 				},
-				arguments: [{type: "Literal", value: symbol.value.value}]
+				arguments: [{type: "Literal", value: symbol.value.value, loc: symbol.loc}]
 			};
 		}
 		else if (symbol.value.type === 'identifier') {
-			symbolValue = {type: "Literal", value: symbol.value.value};
+			var symbolValue = {type: "Literal", value: symbol.value.value};
 	
 			// a.b(args);
 			result = {
+				loc: symbol.loc,
 				type: "CallExpression",
 				callee: {
+					loc: symbol.loc,
 				    type: "MemberExpression",
-				    object: receiver,
-				    // {
-				    // 	type: "Identifier",
-				    // 	name: receiver // a
-				    // },
+				    object: receiver, // a
 				    property: {
+				    	loc: symbol.loc,
 		                type: "Identifier",
 		                name: "send" // b
 		            },
 				    computed: false,
 				},
 				arguments: [symbolValue].concat(symbol.arguments.map(function (arg) {
-					// arguments should just use lobby as context, not the current one
-					// unless it's a method argument
-					return compile(arg, localContext, localContext);
+					 // arg is a list of exprs delimted by ;
+                    var result = {
+                        type: "SequenceExpression",
+                        expressions: arg.map(function (realarg) {
+                            return compile(realarg, localContext, localContext);
+                        })
+                    };
+
+                    var loc = getEnclosingRange(result.expressions);
+                    if (loc !== null) result.loc = loc;
+
+                    return result;
 				}))
 			};
 
 			if (symbolValue.value === "method") {
 
-				// use local context for arguments
-
 				result.arguments = [symbolValue].concat(symbol.arguments.map(function (arg) {
-					return compile(arg, {type: "Identifier", name: "locals"}, {type: "Identifier", name: "locals"});
+					// Arguments will have the locals object as context
+					// arg is also a list of expressions here
+                    return {
+                        type: "SequenceExpression",
+                        expressions: arg.map(function (realarg) {
+							return compile(realarg, {type: "Identifier", name: "locals"}, {type: "Identifier", name: "locals"});
+                        })
+                    };
 				}));
 
-				// turn all arguments but the last to strings instead:
+				// Turn all arguments but the last to strings instead;
 				// they will be sent as messages to the locals object
 
 				for (var i = 1; i < result.arguments.length - 1; i++) {
-					result.arguments[i] = result.arguments[i].arguments[0];
+					// Each argument is a SequenceExpression
+					// Grab the last expression in each sequence and turn it into a string
+					result.arguments[i] = result.arguments[i].expressions[result.arguments[i].expressions.length-1].arguments[0];
 				}
 
-				// the last becomes a thunk
+				// The last becomes a thunk
 
-				var methodBody = result.arguments[result.arguments.length - 1];
+				var lastArgument = result.arguments[result.arguments.length - 1];
+				var methodBody = lastArgument;
+
 				result.arguments[result.arguments.length - 1] = {
 					type: "CallExpression",
 					callee: {
@@ -6818,9 +6151,11 @@ function compile (ast, receiver, localContext) {
 						}
 					}]
 				}
-			} else if (symbolValue.value === "if") {
+			}
+			else if (symbolValue.value === "if") {
 
-				// convert last two arguments into thunks
+				// Convert last two arguments into thunks
+				// TODO handle cases where if statements have < 3 arguments
 
 				var conseq = result.arguments[2];
 				result.arguments[2] = {
@@ -6864,23 +6199,9 @@ function compile (ast, receiver, localContext) {
 					}]
 				};
 			}
-			// else if (symbolValue.value === "setSlot") {
-				// locate any methods in the compiled arguments of the result
-				// var argsContainingMethods = result.arguments.filter(function (arg) {
-				// 	return arg.type === "CallExpression"
-				// 		&& arg.callee.type === "MemberExpression"
-				// 		&& arg.callee.object.name === "Lobby" &&
-				// 		arg.arguments[0].value === "method";
-				// });
-				
-				// insert the type of the argument in
-				// argsContainingMethods.forEach(function (args) {
-				// 	args.arguments.splice(1, 0, receiver);
-				// });
-			// }
 		}
 	} else {
-		console.log('unrecognized ast type', ast.type);
+		throw new Error('CompileError: unrecognized AST type: ' + ast.type);
 	}
 
 	return result;
@@ -6891,7 +6212,7 @@ module.exports = {
 	compile: parseAndEmit
 };
 
-},{"./parser":26,"./pratt":27,"escodegen":9}],26:[function(require,module,exports){
+},{"./parser":23,"./pratt":24,"escodegen":6}],23:[function(require,module,exports){
 (function (process){
 /* parser generated by jison 0.4.13 */
 /*
@@ -6969,15 +6290,15 @@ module.exports = {
 var parser = (function(){
 var parser = {trace: function trace() { },
 yy: {},
-symbols_: {"error":2,"program":3,"exprs":4,"EOF":5,"terminator":6,"expr":7,"message":8,"(":9,")":10,"symbol":11,"arguments":12,"NEWLINE":13,";":14,"argumentList":15,",":16,"IDENTIFIER":17,"NUMBER":18,"string":19,"EmptyString":20,"QuotedString":21,"QuotedStringEscape":22,"quotedstring":23,"$accept":0,"$end":1},
-terminals_: {2:"error",5:"EOF",9:"(",10:")",13:"NEWLINE",14:";",16:",",17:"IDENTIFIER",18:"NUMBER",20:"EmptyString",21:"QuotedString",22:"QuotedStringEscape",23:"quotedstring"},
-productions_: [0,[3,2],[4,3],[4,1],[7,2],[7,1],[7,3],[7,1],[8,1],[8,2],[6,1],[6,1],[12,2],[12,3],[15,1],[15,3],[11,1],[11,1],[11,1],[19,1],[19,1],[19,1],[19,2],[19,2]],
+symbols_: {"error":2,"program":3,"zeroOrMoreTerminators":4,"exprs":5,"EOF":6,"oneOrMoreTerminators":7,"expr":8,"message":9,"(":10,")":11,"symbol":12,"arguments":13,"NEWLINE":14,";":15,"argumentList":16,",":17,"IDENTIFIER":18,"NUMBER":19,"string":20,"EmptyString":21,"QuotedString":22,"QuotedStringEscape":23,"quotedstring":24,"$accept":0,"$end":1},
+terminals_: {2:"error",6:"EOF",10:"(",11:")",14:"NEWLINE",15:";",17:",",18:"IDENTIFIER",19:"NUMBER",21:"EmptyString",22:"QuotedString",23:"QuotedStringEscape",24:"quotedstring"},
+productions_: [0,[3,4],[5,3],[5,1],[8,2],[8,1],[8,3],[9,1],[9,2],[7,2],[7,1],[7,2],[7,1],[4,1],[4,0],[13,2],[13,3],[16,1],[16,3],[12,1],[12,1],[12,1],[20,1],[20,1],[20,1],[20,2],[20,2]],
 performAction: function anonymous(yytext, yyleng, yylineno, yy, yystate /* action[1] */, $$ /* vstack */, _$ /* lstack */) {
 /* this == yyval */
 
 var $0 = $$.length - 1;
 switch (yystate) {
-case 1:return $$[$0-1];
+case 1:return $$[$0-2];
 break;
 case 2:$$[$0-2].push($$[$0]); this.$ = $$[$0-2];
 break;
@@ -6989,7 +6310,7 @@ case 5:this.$ = {type: 'chain', value: [{type: 'message', value: $$[$0]}]};
 break;
 case 6:this.$ = $$[$0-1];
 break;
-case 8:
+case 7:
             this.$ = {
                 type: 'symbol',
                 value: $$[$0],
@@ -6998,7 +6319,7 @@ case 8:
             };
         
 break;
-case 9:
+case 8:
             this.$ = {
                 type: 'symbol',
                 value: $$[$0-1],
@@ -7007,25 +6328,25 @@ case 9:
             };
         
 break;
-case 12:this.$ = [];
+case 15:this.$ = [];
 break;
-case 13:this.$ = $$[$0-1];
+case 16:this.$ = $$[$0-1];
 break;
-case 14:this.$ = [$$[$0]];
+case 17:this.$ = [$$[$0]];
 break;
-case 15:$$[$0-2].push($$[$0]); this.$ = $$[$0-2];
+case 18:$$[$0-2].push($$[$0]); this.$ = $$[$0-2];
 break;
-case 16:this.$ = {type: 'identifier', value: $$[$0]};
+case 19:this.$ = {type: 'identifier', value: $$[$0]};
 break;
-case 17:this.$ = {type: 'number', value: $$[$0]};
+case 20:this.$ = {type: 'number', value: $$[$0]};
 break;
-case 18:this.$ = {type: 'string', value: $$[$0]};
+case 21:this.$ = {type: 'string', value: $$[$0]};
 break;
-case 19:
+case 22:
         this.$ = '';
     
 break;
-case 21:
+case 24:
         switch (yytext)
         {
             case 'b':       this.$ = '\b'; break;
@@ -7041,7 +6362,7 @@ case 21:
         }
     
 break;
-case 22:
+case 25:
         switch ($$[$0-1])
         {
             case 'b':       this.$ = '\b'; break;
@@ -7058,14 +6379,14 @@ case 22:
         this.$ += $$[$0];
     
 break;
-case 23:
+case 26:
         this.$ = $$[$0-1] + $$[$0];
     
 break;
 }
 },
-table: [{3:1,4:2,6:6,7:3,8:4,9:[1,5],11:7,13:[1,8],14:[1,9],17:[1,10],18:[1,11],19:12,20:[1,13],21:[1,14],22:[1,15]},{1:[3]},{5:[1,16],6:17,13:[1,8],14:[1,9]},{5:[2,3],8:18,11:7,13:[2,3],14:[2,3],17:[1,10],18:[1,11],19:12,20:[1,13],21:[1,14],22:[1,15]},{5:[2,5],10:[2,5],13:[2,5],14:[2,5],16:[2,5],17:[2,5],18:[2,5],20:[2,5],21:[2,5],22:[2,5]},{6:6,7:19,8:4,9:[1,5],11:7,13:[1,8],14:[1,9],17:[1,10],18:[1,11],19:12,20:[1,13],21:[1,14],22:[1,15]},{5:[2,7],10:[2,7],13:[2,7],14:[2,7],16:[2,7],17:[2,7],18:[2,7],20:[2,7],21:[2,7],22:[2,7]},{5:[2,8],9:[1,21],10:[2,8],12:20,13:[2,8],14:[2,8],16:[2,8],17:[2,8],18:[2,8],20:[2,8],21:[2,8],22:[2,8]},{5:[2,10],9:[2,10],10:[2,10],13:[2,10],14:[2,10],16:[2,10],17:[2,10],18:[2,10],20:[2,10],21:[2,10],22:[2,10]},{5:[2,11],9:[2,11],10:[2,11],13:[2,11],14:[2,11],16:[2,11],17:[2,11],18:[2,11],20:[2,11],21:[2,11],22:[2,11]},{5:[2,16],9:[2,16],10:[2,16],13:[2,16],14:[2,16],16:[2,16],17:[2,16],18:[2,16],20:[2,16],21:[2,16],22:[2,16]},{5:[2,17],9:[2,17],10:[2,17],13:[2,17],14:[2,17],16:[2,17],17:[2,17],18:[2,17],20:[2,17],21:[2,17],22:[2,17]},{5:[2,18],9:[2,18],10:[2,18],13:[2,18],14:[2,18],16:[2,18],17:[2,18],18:[2,18],20:[2,18],21:[2,18],22:[2,18]},{5:[2,19],9:[2,19],10:[2,19],13:[2,19],14:[2,19],16:[2,19],17:[2,19],18:[2,19],20:[2,19],21:[2,19],22:[2,19]},{5:[2,20],9:[2,20],10:[2,20],13:[2,20],14:[2,20],16:[2,20],17:[2,20],18:[2,20],20:[2,20],21:[2,20],22:[2,20],23:[1,22]},{5:[2,21],9:[2,21],10:[2,21],13:[2,21],14:[2,21],16:[2,21],17:[2,21],18:[2,21],20:[2,21],21:[2,21],22:[2,21],23:[1,23]},{1:[2,1]},{6:6,7:24,8:4,9:[1,5],11:7,13:[1,8],14:[1,9],17:[1,10],18:[1,11],19:12,20:[1,13],21:[1,14],22:[1,15]},{5:[2,4],10:[2,4],13:[2,4],14:[2,4],16:[2,4],17:[2,4],18:[2,4],20:[2,4],21:[2,4],22:[2,4]},{8:18,10:[1,25],11:7,17:[1,10],18:[1,11],19:12,20:[1,13],21:[1,14],22:[1,15]},{5:[2,9],10:[2,9],13:[2,9],14:[2,9],16:[2,9],17:[2,9],18:[2,9],20:[2,9],21:[2,9],22:[2,9]},{6:6,7:28,8:4,9:[1,5],10:[1,26],11:7,13:[1,8],14:[1,9],15:27,17:[1,10],18:[1,11],19:12,20:[1,13],21:[1,14],22:[1,15]},{5:[2,23],9:[2,23],10:[2,23],13:[2,23],14:[2,23],16:[2,23],17:[2,23],18:[2,23],20:[2,23],21:[2,23],22:[2,23]},{5:[2,22],9:[2,22],10:[2,22],13:[2,22],14:[2,22],16:[2,22],17:[2,22],18:[2,22],20:[2,22],21:[2,22],22:[2,22]},{5:[2,2],8:18,11:7,13:[2,2],14:[2,2],17:[1,10],18:[1,11],19:12,20:[1,13],21:[1,14],22:[1,15]},{5:[2,6],10:[2,6],13:[2,6],14:[2,6],16:[2,6],17:[2,6],18:[2,6],20:[2,6],21:[2,6],22:[2,6]},{5:[2,12],10:[2,12],13:[2,12],14:[2,12],16:[2,12],17:[2,12],18:[2,12],20:[2,12],21:[2,12],22:[2,12]},{10:[1,29],16:[1,30]},{8:18,10:[2,14],11:7,16:[2,14],17:[1,10],18:[1,11],19:12,20:[1,13],21:[1,14],22:[1,15]},{5:[2,13],10:[2,13],13:[2,13],14:[2,13],16:[2,13],17:[2,13],18:[2,13],20:[2,13],21:[2,13],22:[2,13]},{6:6,7:31,8:4,9:[1,5],11:7,13:[1,8],14:[1,9],17:[1,10],18:[1,11],19:12,20:[1,13],21:[1,14],22:[1,15]},{8:18,10:[2,15],11:7,16:[2,15],17:[1,10],18:[1,11],19:12,20:[1,13],21:[1,14],22:[1,15]}],
-defaultActions: {16:[2,1]},
+table: [{3:1,4:2,7:3,10:[2,14],14:[1,4],15:[1,5],18:[2,14],19:[2,14],21:[2,14],22:[2,14],23:[2,14]},{1:[3]},{5:6,8:7,9:8,10:[1,9],12:10,18:[1,11],19:[1,12],20:13,21:[1,14],22:[1,15],23:[1,16]},{10:[2,13],18:[2,13],19:[2,13],21:[2,13],22:[2,13],23:[2,13]},{6:[2,10],7:17,10:[2,10],14:[1,4],15:[1,5],18:[2,10],19:[2,10],21:[2,10],22:[2,10],23:[2,10]},{6:[2,12],7:18,10:[2,12],14:[1,4],15:[1,5],18:[2,12],19:[2,12],21:[2,12],22:[2,12],23:[2,12]},{4:19,6:[2,14],7:20,14:[1,4],15:[1,5]},{6:[2,3],9:21,11:[2,3],12:10,14:[2,3],15:[2,3],17:[2,3],18:[1,11],19:[1,12],20:13,21:[1,14],22:[1,15],23:[1,16]},{6:[2,5],11:[2,5],14:[2,5],15:[2,5],17:[2,5],18:[2,5],19:[2,5],21:[2,5],22:[2,5],23:[2,5]},{8:22,9:8,10:[1,9],12:10,18:[1,11],19:[1,12],20:13,21:[1,14],22:[1,15],23:[1,16]},{6:[2,7],10:[1,24],11:[2,7],13:23,14:[2,7],15:[2,7],17:[2,7],18:[2,7],19:[2,7],21:[2,7],22:[2,7],23:[2,7]},{6:[2,19],10:[2,19],11:[2,19],14:[2,19],15:[2,19],17:[2,19],18:[2,19],19:[2,19],21:[2,19],22:[2,19],23:[2,19]},{6:[2,20],10:[2,20],11:[2,20],14:[2,20],15:[2,20],17:[2,20],18:[2,20],19:[2,20],21:[2,20],22:[2,20],23:[2,20]},{6:[2,21],10:[2,21],11:[2,21],14:[2,21],15:[2,21],17:[2,21],18:[2,21],19:[2,21],21:[2,21],22:[2,21],23:[2,21]},{6:[2,22],10:[2,22],11:[2,22],14:[2,22],15:[2,22],17:[2,22],18:[2,22],19:[2,22],21:[2,22],22:[2,22],23:[2,22]},{6:[2,23],10:[2,23],11:[2,23],14:[2,23],15:[2,23],17:[2,23],18:[2,23],19:[2,23],21:[2,23],22:[2,23],23:[2,23],24:[1,25]},{6:[2,24],10:[2,24],11:[2,24],14:[2,24],15:[2,24],17:[2,24],18:[2,24],19:[2,24],21:[2,24],22:[2,24],23:[2,24],24:[1,26]},{6:[2,9],10:[2,9],18:[2,9],19:[2,9],21:[2,9],22:[2,9],23:[2,9]},{6:[2,11],10:[2,11],18:[2,11],19:[2,11],21:[2,11],22:[2,11],23:[2,11]},{6:[1,27]},{6:[2,13],8:28,9:8,10:[1,9],12:10,18:[1,11],19:[1,12],20:13,21:[1,14],22:[1,15],23:[1,16]},{6:[2,4],11:[2,4],14:[2,4],15:[2,4],17:[2,4],18:[2,4],19:[2,4],21:[2,4],22:[2,4],23:[2,4]},{9:21,11:[1,29],12:10,18:[1,11],19:[1,12],20:13,21:[1,14],22:[1,15],23:[1,16]},{6:[2,8],11:[2,8],14:[2,8],15:[2,8],17:[2,8],18:[2,8],19:[2,8],21:[2,8],22:[2,8],23:[2,8]},{5:32,8:7,9:8,10:[1,9],11:[1,30],12:10,16:31,18:[1,11],19:[1,12],20:13,21:[1,14],22:[1,15],23:[1,16]},{6:[2,26],10:[2,26],11:[2,26],14:[2,26],15:[2,26],17:[2,26],18:[2,26],19:[2,26],21:[2,26],22:[2,26],23:[2,26]},{6:[2,25],10:[2,25],11:[2,25],14:[2,25],15:[2,25],17:[2,25],18:[2,25],19:[2,25],21:[2,25],22:[2,25],23:[2,25]},{1:[2,1]},{6:[2,2],9:21,11:[2,2],12:10,14:[2,2],15:[2,2],17:[2,2],18:[1,11],19:[1,12],20:13,21:[1,14],22:[1,15],23:[1,16]},{6:[2,6],11:[2,6],14:[2,6],15:[2,6],17:[2,6],18:[2,6],19:[2,6],21:[2,6],22:[2,6],23:[2,6]},{6:[2,15],11:[2,15],14:[2,15],15:[2,15],17:[2,15],18:[2,15],19:[2,15],21:[2,15],22:[2,15],23:[2,15]},{11:[1,33],17:[1,34]},{7:35,11:[2,17],14:[1,4],15:[1,5],17:[2,17]},{6:[2,16],11:[2,16],14:[2,16],15:[2,16],17:[2,16],18:[2,16],19:[2,16],21:[2,16],22:[2,16],23:[2,16]},{5:36,8:7,9:8,10:[1,9],12:10,18:[1,11],19:[1,12],20:13,21:[1,14],22:[1,15],23:[1,16]},{8:28,9:8,10:[1,9],12:10,18:[1,11],19:[1,12],20:13,21:[1,14],22:[1,15],23:[1,16]},{7:35,11:[2,18],14:[1,4],15:[1,5],17:[2,18]}],
+defaultActions: {27:[2,1]},
 parseError: function parseError(str, hash) {
     if (hash.recoverable) {
         this.trace(str);
@@ -7533,21 +6854,21 @@ var YYSTATE=YY_START;
 switch($avoiding_name_collisions) {
 case 0:/* whitespace */
 break;
-case 1:return 18
+case 1:return 19
 break;
-case 2:return 17
+case 2:return 18
 break;
-case 3:return 9
+case 3:return 10
 break;
-case 4:return 10
+case 4:return 11
 break;
-case 5:return 13
+case 5:return 14
 break;
-case 6:return 14
+case 6:return 15
 break;
-case 7:return 16
+case 7:return 17
 break;
-case 8:return 20
+case 8:return 21
 break;
 case 9:this.begin('DoubleQuotedString');
 break;
@@ -7555,11 +6876,11 @@ case 10:this.begin('QuotedStringEscape');
 break;
 case 11:this.popState();
 break;
-case 12: this.popState(); return 22; 
+case 12: this.popState(); return 23; 
 break;
-case 13:return 21;
+case 13:return 22;
 break;
-case 14:return 5
+case 14:return 6
 break;
 case 15:return 'INVALID'
 break;
@@ -7596,39 +6917,12 @@ if (typeof module !== 'undefined' && require.main === module) {
 }
 }
 }).call(this,require("Zbi7gb"))
-},{"Zbi7gb":6,"fs":3,"path":5}],27:[function(require,module,exports){
+},{"Zbi7gb":5,"fs":3,"path":4}],24:[function(require,module,exports){
 
 // AST nodes
 
-// function Expression (e) {
-// 	return {
-// 		type: "expression",
-// 		e: e
-// 	};
-// }
-
-// function Application (op) {
-// 	var args = Array.prototype.slice.call(arguments, 1);
-// 	return {
-// 		type: "application",
-// 		op: op,
-// 		operands: args
-// 	};
-// }
-
-function Message (value) {
-	return {
-		type: 'message',
-		value: value
-	};
-}
-
 function Chain (left, op, right) {
-	// var args = Array.prototype.slice.call(arguments);
 	var result = [];
-	// args.forEach(function(message) {
-	// 	result.value.push(message);
-	// });
 	result.push(left);
 	result.push(op);
 	op.value.arguments.push({type: 'chain', value: right});
@@ -7637,34 +6931,8 @@ function Chain (left, op, right) {
 
 // Tokens
 
-// function Id (i) {
-// 	return {type: "identifier", value: i};
-// }
-// function Operator (i) {
-// 	return {type: "operator", value: i};
-// }
-var input = [];//[Id('a'), Operator('+'), Id('b')];
+var input = [];
 var ptr = 0;
-
-// function lex (str) {
-// 	var allowed = /\b[0-9a-zA-Z]+\b|[-+/()~!*?:]/g;
-// 	var ops = /[-+/()~!*?:]/;
-
-// 	var match;
-// 	var results = [];
-
-// 	while (match = allowed.exec(str)) {
-// 		var text = match[0];
-// 		if (ops.test(text)) {
-// 			results.push(Operator(text));
-// 		} else {
-// 			results.push(Id(text));
-// 		}
-// 	}
-// 	results.push({type: 'EOF'});
-
-// 	return results;
-// }
 
 function consume () {
 	return input[ptr++];
@@ -7688,7 +6956,7 @@ function parseId (token) {
 function makeInfixOp (precedence) {
 	var parser = function (left, token) {
 		var right = parseExpression(precedence);
-		token.value.arguments.push(right);
+		token.value.arguments.push([right]);
 		return {type: 'chain', value: [left, token]};
 	};
 	parser.precedence = precedence;
@@ -7732,7 +7000,6 @@ var otherOperators = {
 	"==": makeInfixOp(COMPARISON),
 	"and": makeInfixOp(BOOLEAN),
 	// "/": makeInfixOp(PRODUCT),
-//brackets
 	// "?": parseMixfixOp
 };
 
@@ -7784,25 +7051,9 @@ function parseExpression (precedence) {
 		consume();
 
 		left = infixParser(left, token);
-		// console.log('left');
-		// print(left);
 	}
 
 	return left;
-}
-
-// entry point
-
-// var str = "+-!a";
-// var str = "a + b * c";
-// var str = "a * b + c";
-// input = lex(str);
-// console.log(input);
-// console.log(JSON.stringify(parseExpression(0)));
-
-var util = require('util');
-function print (obj) {
-	console.log(util.inspect(obj, {showHidden: false, depth: null}));
 }
 
 module.exports = {
@@ -7814,12 +7065,9 @@ module.exports = {
 		input = chain.value.slice();
 		input.push({type: 'EOF'});
 		var result = parseExpression(0);
-		// console.log("=>");
-		// print(result);
 
 		return result;
-		// return {type: 'chain', value: [result]};
 	},
 	isOperator: isOperator
 };
-},{"util":8}]},{},[])
+},{}]},{},[])
