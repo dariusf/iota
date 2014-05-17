@@ -122,9 +122,9 @@ arguments
     ;
 
 argumentList
-    : expr
+    : exprs
         {$$ = [$1];}
-    | argumentList ',' expr
+    | argumentList ',' exprs
         {$1.push($3); $$ = $1;}
     ;
 

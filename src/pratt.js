@@ -89,7 +89,7 @@ function parseId (token) {
 function makeInfixOp (precedence) {
 	var parser = function (left, token) {
 		var right = parseExpression(precedence);
-		token.value.arguments.push(right);
+		token.value.arguments.push([right]);
 		return {type: 'chain', value: [left, token]};
 	};
 	parser.precedence = precedence;

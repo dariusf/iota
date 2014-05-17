@@ -26,7 +26,9 @@ function findChainsInAST (nodelist) {
 		nodelist.forEach(function (node) {
 			if (node.type === 'chain') {
 				node.value.forEach(function (message) {
-					helper(message.value.arguments);
+					message.value.arguments.forEach(function (arg) {
+						helper(arg);
+					});
 				});
 				allChains.push(node);
 			}
@@ -117,7 +119,7 @@ function assignmentOperatorMacro (ast) {
 						type: 'identifier',
 						value: 'setSlot'
 					},
-					arguments: [message, rhs]
+					arguments: [[message], [rhs]]
 				}
 			};
 
@@ -243,7 +245,13 @@ function compile (ast, receiver, localContext) {
 				    computed: false,
 				},
 				arguments: [symbolValue].concat(symbol.arguments.map(function (arg) {
-					return compile(arg, localContext, localContext);
+					 // arg is a list of exprs delimted by ;
+                    return {
+                        type: "SequenceExpression",
+                        expressions: arg.map(function (realarg) {
+                            return compile(realarg, localContext, localContext);
+                        })
+                    };
 				}))
 			};
 
@@ -251,14 +259,22 @@ function compile (ast, receiver, localContext) {
 
 				result.arguments = [symbolValue].concat(symbol.arguments.map(function (arg) {
 					// Arguments will have the locals object as context
-					return compile(arg, {type: "Identifier", name: "locals"}, {type: "Identifier", name: "locals"});
+					// arg is also a list of expressions here
+                    return {
+                        type: "SequenceExpression",
+                        expressions: arg.map(function (realarg) {
+							return compile(realarg, {type: "Identifier", name: "locals"}, {type: "Identifier", name: "locals"});
+                        })
+                    };
 				}));
 
 				// Turn all arguments but the last to strings instead;
 				// they will be sent as messages to the locals object
 
 				for (var i = 1; i < result.arguments.length - 1; i++) {
-					result.arguments[i] = result.arguments[i].arguments[0];
+					// Each argument is a SequenceExpression
+					// Grab the last expression in each sequence and turn it into a string
+					result.arguments[i] = result.arguments[i].expressions[result.arguments[i].expressions.length-1].arguments[0];
 				}
 
 				// The last becomes a thunk
