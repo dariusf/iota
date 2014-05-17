@@ -189,6 +189,32 @@ function parseAndEmit (code) {
 	return escodegen.generate(parse(code));
 }
 
+function getEnclosingRange (exprlist) {
+	function priority (s, c) {
+		// line number must be smaller
+		// if line number is tied, column must be smaller
+	    return c.line < s.line ? c : (c.line === s.line && c.column < s.column ? c : s);
+	};
+
+	var inf = {
+	    line: Infinity,
+	    column: Infinity
+	};
+
+	var locInfo = exprlist
+		.map(function(node) {return node.loc;})
+		.filter(function(node) {return !!node;});
+
+	if (locInfo.length > 0) {
+		var start = locInfo.map(function(node) {return node.start;}).reduce(priority, inf);
+		var end = locInfo.map(function(node) {return node.end;}).reduce(priority, inf);
+
+		return {start: start, end: end};
+	}
+
+	return null;
+}
+
 function compile (ast, receiver, localContext) {
 	var result = {};
 
@@ -211,22 +237,26 @@ function compile (ast, receiver, localContext) {
 
 		if (symbol.value.type === 'number') {
 			result = {
+				loc: symbol.loc,
 				type: "CallExpression",
 				callee: {
+					loc: symbol.loc,
 					type: "Identifier",
 					name: "IoNumberWrapper"
 				},
-				arguments: [{type: "Literal", value: +symbol.value.value}]
+				arguments: [{type: "Literal", value: +symbol.value.value, loc: symbol.loc}]
 			};
 		}
 		else if (symbol.value.type === 'string') {
 			result = {
+				loc: symbol.loc,
 				type: "CallExpression",
 				callee: {
+					loc: symbol.loc,
 					type: "Identifier",
 					name: "IoStringWrapper"
 				},
-				arguments: [{type: "Literal", value: symbol.value.value}]
+				arguments: [{type: "Literal", value: symbol.value.value, loc: symbol.loc}]
 			};
 		}
 		else if (symbol.value.type === 'identifier') {
@@ -234,11 +264,14 @@ function compile (ast, receiver, localContext) {
 	
 			// a.b(args);
 			result = {
+				loc: symbol.loc,
 				type: "CallExpression",
 				callee: {
+					loc: symbol.loc,
 				    type: "MemberExpression",
 				    object: receiver, // a
 				    property: {
+				    	loc: symbol.loc,
 		                type: "Identifier",
 		                name: "send" // b
 		            },
@@ -246,12 +279,17 @@ function compile (ast, receiver, localContext) {
 				},
 				arguments: [symbolValue].concat(symbol.arguments.map(function (arg) {
 					 // arg is a list of exprs delimted by ;
-                    return {
+                    var result = {
                         type: "SequenceExpression",
                         expressions: arg.map(function (realarg) {
                             return compile(realarg, localContext, localContext);
                         })
                     };
+
+                    var loc = getEnclosingRange(result.expressions);
+                    if (loc !== null) result.loc = loc;
+
+                    return result;
 				}))
 			};
 
