@@ -52,7 +52,7 @@ Usage
 **node**
 
 ```js
-var iota = require('iota');
+var iota = require('iota-compiler');
 eval(iota.compile('fact := method(n, if (n == 0, 1, n * fact (n - 1))); writeln(fact(5))'));
 // => 120
 ```
