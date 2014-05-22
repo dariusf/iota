@@ -1,8 +1,8 @@
 {
   "name": "iota-compiler",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Io-to-JavaScript compiler",
-  "main": "src/iota.js",
+  "main": "iota.js",
   "dependencies": {
     "browserify": "~4.1.2",
     "escodegen": "~1.3.2",
