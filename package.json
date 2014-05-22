@@ -1,6 +1,6 @@
 {
-  "name": "iota",
-  "version": "0.0.0",
+  "name": "iota-compiler",
+  "version": "0.1.0",
   "description": "Io-to-JavaScript compiler",
   "main": "src/iota.js",
   "dependencies": {
@@ -11,6 +11,7 @@
   },
   "devDependencies": {},
   "scripts": {
+    "postinstall": "make",
     "test": "node test/test"
   },
   "repository": {
@@ -25,7 +26,7 @@
     "codecombat",
     "compiler"
   ],
-  "author": "dariusf",
+  "author": "Darius Foo",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/dariusf/iota/issues"

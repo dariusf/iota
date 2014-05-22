@@ -44,9 +44,7 @@ The AST constructed by the parser complies with the [Mozilla Parser API](https:/
 Installation
 ------------
 
-- `git clone`
-- `npm install`
-- `make`
+- `npm install iota-compiler`
 
 Usage
 -----
