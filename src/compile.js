@@ -237,18 +237,18 @@ function compile (ast, receiver, localContext) {
 
 		if (symbol.value.type === 'number') {
 			result = {
-				loc: symbol.loc,
+				// loc: symbol.loc,
 				type: "CallExpression",
-				callee: astIdentifier('IoNumberWrapper', symbol.loc),
-				arguments: [{type: "Literal", value: +symbol.value.value, loc: symbol.loc}]
+				callee: astIdentifier('IoNumberWrapper'),// symbol.loc),
+				arguments: [{type: "Literal", value: +symbol.value.value}]//, loc: symbol.loc}]
 			};
 		}
 		else if (symbol.value.type === 'string') {
 			result = {
-				loc: symbol.loc,
+				// loc: symbol.loc,
 				type: "CallExpression",
-				callee: astIdentifier('IoStringWrapper', symbol.loc),
-				arguments: [{type: "Literal", value: symbol.value.value, loc: symbol.loc}]
+				callee: astIdentifier('IoStringWrapper'),// symbol.loc),
+				arguments: [{type: "Literal", value: symbol.value.value}]//, loc: symbol.loc}]
 			};
 		}
 		else if (symbol.value.type === 'identifier') {
@@ -256,14 +256,14 @@ function compile (ast, receiver, localContext) {
 	
 			// a.b(args);
 			result = {
-				loc: symbol.loc,
+				// loc: symbol.loc,
 				type: "CallExpression",
 				callee: {
-					loc: symbol.loc,
+					// loc: symbol.loc,
 				    type: "MemberExpression",
 				    object: receiver, // a
 				    property: {
-				    	loc: symbol.loc,
+				    	// loc: symbol.loc,
 		                type: "Identifier",
 		                name: "send" // b
 		            },
@@ -278,8 +278,8 @@ function compile (ast, receiver, localContext) {
                         })
                     };
 
-                    var loc = getEnclosingRange(result.expressions);
-                    if (loc !== null) result.loc = loc;
+                    // var loc = getEnclosingRange(result.expressions);
+                    // if (loc !== null) result.loc = loc;
 
                     return result;
 				}))
@@ -381,18 +381,18 @@ function compile (ast, receiver, localContext) {
 	return result;
 }
 
-function astIdentifier (id, loc) {
+function astIdentifier (id) {//, loc) {
 	return {
-	    "loc": loc,
+	    // "loc": loc,
 	    "type": "MemberExpression",
 	    "computed": false,
 	    "object": {
 	        "type": "Identifier",
-	    	"loc": loc,
+	    	// "loc": loc,
 	        "name": "_io"
 	    },
 	    "property": {
-	    	"loc": loc,
+	    	// "loc": loc,
 	        "type": "Identifier",
 	        "name": id
 	    }
