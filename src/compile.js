@@ -167,7 +167,7 @@ function parse (code) {
 
 	var generated = [];
 	ast.forEach(function (chain) {
-		chain = compile(chain, {type: "Identifier", name: "Lobby"}, {type: "Identifier", name: "Lobby"});
+		chain = compile(chain, astIdentifier('Lobby'), astIdentifier('Lobby'));
 		generated.push(chain);
 	});
 	
@@ -239,11 +239,7 @@ function compile (ast, receiver, localContext) {
 			result = {
 				loc: symbol.loc,
 				type: "CallExpression",
-				callee: {
-					loc: symbol.loc,
-					type: "Identifier",
-					name: "IoNumberWrapper"
-				},
+				callee: astIdentifier('IoNumberWrapper', symbol.loc),
 				arguments: [{type: "Literal", value: +symbol.value.value, loc: symbol.loc}]
 			};
 		}
@@ -251,11 +247,7 @@ function compile (ast, receiver, localContext) {
 			result = {
 				loc: symbol.loc,
 				type: "CallExpression",
-				callee: {
-					loc: symbol.loc,
-					type: "Identifier",
-					name: "IoStringWrapper"
-				},
+				callee: astIdentifier('IoStringWrapper', symbol.loc),
 				arguments: [{type: "Literal", value: symbol.value.value, loc: symbol.loc}]
 			};
 		}
@@ -322,10 +314,7 @@ function compile (ast, receiver, localContext) {
 
 				result.arguments[result.arguments.length - 1] = {
 					type: "CallExpression",
-					callee: {
-						type: "Identifier",
-						name: "IoThunk"
-					},
+					callee: astIdentifier('IoThunk'),
 					arguments: [{
 						type: "FunctionExpression",
 						id: null,
@@ -351,10 +340,7 @@ function compile (ast, receiver, localContext) {
 				var conseq = result.arguments[2];
 				result.arguments[2] = {
 					type: "CallExpression",
-					callee: {
-						type: "Identifier",
-						name: "IoThunk"
-					},
+					callee: astIdentifier('IoThunk'),
 					arguments: [{
 						type: "FunctionExpression",
 						id: null,
@@ -372,10 +358,7 @@ function compile (ast, receiver, localContext) {
 				var alt = result.arguments[3];
 				result.arguments[3] = {
 					type: "CallExpression",
-					callee: {
-						type: "Identifier",
-						name: "IoThunk"
-					},
+					callee: astIdentifier('IoThunk'),
 					arguments: [{
 						type: "FunctionExpression",
 						id: null,
@@ -396,6 +379,24 @@ function compile (ast, receiver, localContext) {
 	}
 
 	return result;
+}
+
+function astIdentifier (id, loc) {
+	return {
+	    "loc": loc,
+	    "type": "MemberExpression",
+	    "computed": false,
+	    "object": {
+	        "type": "Identifier",
+	    	"loc": loc,
+	        "name": "_io"
+	    },
+	    "property": {
+	    	"loc": loc,
+	        "type": "Identifier",
+	        "name": id
+	    }
+	};
 }
 
 module.exports = {
