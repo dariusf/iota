@@ -21,8 +21,8 @@ function parse(input) {
 }
 
 if (filename) {
-	var code = fs.readFileSync(path.resolve(__dirname, filename));
-	console.log(JSON.stringify(parse(code)));
+	var code = fs.readFileSync(path.resolve(__dirname, filename), {encoding: 'utf-8'});
+	console.log(JSON.stringify(parse(code), null, 4));
 }
 
 module.exports = {
