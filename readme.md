@@ -35,9 +35,14 @@ Dependencies
 ------------
 
 - [node.js](http://nodejs.org/)
+- [Escodegen](https://github.com/Constellation/escodegen)
+
+
+**Development**
+
+- `make`
 - [Jison](http://zaach.github.io/jison/)
 - [Browserify](http://browserify.org/)
-- [Escodegen](https://github.com/Constellation/escodegen)
 
 The AST constructed by the parser complies with the [Mozilla Parser API](https://developer.mozilla.org/en-US/docs/SpiderMonkey/Parser_API) specification.
 
@@ -49,17 +54,27 @@ Installation
 Usage
 -----
 
-**node**
+**node.js**
 
 ```js
 var iota = require('iota-compiler');
-eval(iota.compile('fact := method(n, if (n == 0, 1, n * fact (n - 1))); writeln(fact(5))'));
+var _io = iota.lib; // make runtime library available
+
+eval(iota.compile('fact := method(n, if (n == 0, 1, n * fact (n - 1))); writeln(fact(5))'), false);
 // => 120
 ```
 
 **Browser**
 
-A demo of Iota running in a web page can be found in `/demos/browser`. After running `make`, the necessary files will be packaged into `bundle.js`. Simply include it in your web page as in the demo, and you'll be able to use Iota just like in the node example above (complete with `require`, courtesy of Browserify).
+A demo of Iota running in a web page can be found in `/demos/browser`.
+
+```js
+var iota = require('iota-compiler');
+
+eval(iota.compile('fact := method(n, if (n == 0, 1, n * fact (n - 1))); writeln(fact(5))'), false);
+// => 120
+```
+Simply include `iota-browser.js` and `lib.js` in your web page. Usage is the same as with node (complete with `require`, courtesy of Browserify), except that the `_io` binding isn't required.
 
 **CLI**
 
@@ -76,9 +91,9 @@ iota.parse(code);
 Returns a JavaScript object representing the syntax tree.
 
 ```js
-iota.compile(code, includeLibrary, boilerplate);
+iota.compile(code, boilerplate);
 ```
-Returns a string of compiled JavaScript. If `includeLibrary` is true, the runtime library will be prepended to the output. If `boilerplate` is true, the compiled output will additionally be wrapped in a function for easier interfacing with the outside world.
+Returns a string of compiled JavaScript. If `boilerplate` is true, the compiled output will additionally be wrapped in a function for easier interfacing with the outside world.
 
 License
 -------

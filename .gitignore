@@ -1,4 +1,4 @@
 node_modules
 src/parser.js
-demos/browser/bundle.js
+demos/browser/iota-browser.js
 demos/browser/lib.js

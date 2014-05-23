@@ -2,7 +2,8 @@
 <html>
 	<head>
 		<link rel="stylesheet" type="text/css" href="style.css">
-		<script type="text/javascript" src="bundle.js"></script>
+		<script type="text/javascript" src="lib.js"></script>
+		<script type="text/javascript" src="iota-browser.js"></script>
 		<script>
 			window.onload = function () {
 				var iota = require('iota-compiler');
@@ -27,7 +28,7 @@
 						jsField.value = iota.compile(inputField.value, runtimeCheckbox.checked, boilerplateCheckbox.checked);
 
 						try {
-							eval(iota.compile(inputField.value, true, false));
+							eval(iota.compile(inputField.value, false));
 						} catch(e) {
 							resultField.value = e;
 						}

@@ -11,7 +11,10 @@ parser: src/parser.js
 src/parser.js: src/parser.jison
 	$(JISON) src/parser.jison -o src/parser.js
 
-browser: $(BROWSER_DEMOS)/bundle.js $(BROWSER_DEMOS)/lib.js
+browser: $(BROWSER_DEMOS)/iota-browser.js $(BROWSER_DEMOS)/lib.js
 
-$(BROWSER_DEMOS)/bundle.js $(BROWSER_DEMOS)/lib.js: src/*.js iota.js
-	$(BROWSERIFY) -t brfs -r ./iota.js:iota-compiler -o $(BROWSER_DEMOS)/bundle.js
+$(BROWSER_DEMOS)/iota-browser.js $(BROWSER_DEMOS)/lib.js: src/*.js iota.js
+	$(BROWSERIFY) -r ./iota.js:iota-compiler -o $(BROWSER_DEMOS)/iota-browser.js
+	cp src/lib.js $(BROWSER_DEMOS)/lib.js
+	cp src/lib.js .
+	cp $(BROWSER_DEMOS)/iota-browser.js .
