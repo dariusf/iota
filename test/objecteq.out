@@ -1,2 +1,2 @@
-Lobby.send('Lobby').send('setSlot', (IoStringWrapper('Person')), (Lobby.send('Object').send('clone')));
-Lobby.send('writeln', (Lobby.send('Person').send('==', (Lobby.send('Person')))));
+_io.Lobby.send('Lobby').send('setSlot', (_io.IoStringWrapper('Person')), (_io.Lobby.send('Object').send('clone')));
+_io.Lobby.send('writeln', (_io.Lobby.send('Person').send('==', (_io.Lobby.send('Person')))));

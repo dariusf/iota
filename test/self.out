@@ -1,7 +1,7 @@
-Lobby.send('Lobby').send('setSlot', (IoStringWrapper('Person')), (Lobby.send('Object').send('clone')));
-Lobby.send('Person').send('setSlot', (IoStringWrapper('talk')), (Lobby.send('method', IoThunk(function (locals) {
+_io.Lobby.send('Lobby').send('setSlot', (_io.IoStringWrapper('Person')), (_io.Lobby.send('Object').send('clone')));
+_io.Lobby.send('Person').send('setSlot', (_io.IoStringWrapper('talk')), (_io.Lobby.send('method', _io.IoThunk(function (locals) {
     return locals.send('writeln', (locals.send('name')));
 }))));
-Lobby.send('Lobby').send('setSlot', (IoStringWrapper('bob')), (Lobby.send('Person').send('clone')));
-Lobby.send('bob').send('setSlot', (IoStringWrapper('name')), (IoStringWrapper('bob')));
-Lobby.send('bob').send('talk');
+_io.Lobby.send('Lobby').send('setSlot', (_io.IoStringWrapper('bob')), (_io.Lobby.send('Person').send('clone')));
+_io.Lobby.send('bob').send('setSlot', (_io.IoStringWrapper('name')), (_io.IoStringWrapper('bob')));
+_io.Lobby.send('bob').send('talk');

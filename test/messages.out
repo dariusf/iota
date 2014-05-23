@@ -1,12 +1,12 @@
-Lobby.send('Lobby').send('setSlot', (IoStringWrapper('Person')), (Lobby.send('Object').send('clone')));
-Lobby.send('Person').send('setSlot', (IoStringWrapper('hello')), (IoNumberWrapper(1)));
-Lobby.send('Person').send('setSlot', (IoStringWrapper('talk')), (Lobby.send('method', 'name', IoThunk(function (locals) {
-    return locals.send('writeln', (locals.send('name').send('charAt', (IoNumberWrapper(2)))));
+_io.Lobby.send('Lobby').send('setSlot', (_io.IoStringWrapper('Person')), (_io.Lobby.send('Object').send('clone')));
+_io.Lobby.send('Person').send('setSlot', (_io.IoStringWrapper('hello')), (_io.IoNumberWrapper(1)));
+_io.Lobby.send('Person').send('setSlot', (_io.IoStringWrapper('talk')), (_io.Lobby.send('method', 'name', _io.IoThunk(function (locals) {
+    return locals.send('writeln', (locals.send('name').send('charAt', (_io.IoNumberWrapper(2)))));
 }))));
-Lobby.send('Person').send('hello');
-Lobby.send('if', (Lobby.send('true')), IoThunk(function () {
-    return Lobby.send('Person').send('talk', (IoStringWrapper('billy')));
-}), IoThunk(function () {
-    return Lobby.send('Person').send('talk', (IoStringWrapper('mandy')));
+_io.Lobby.send('Person').send('hello');
+_io.Lobby.send('if', (_io.Lobby.send('true')), _io.IoThunk(function () {
+    return _io.Lobby.send('Person').send('talk', (_io.IoStringWrapper('billy')));
+}), _io.IoThunk(function () {
+    return _io.Lobby.send('Person').send('talk', (_io.IoStringWrapper('mandy')));
 }));
-Lobby.send('writeln', (Lobby.send('Person').send('slotNames')));
+_io.Lobby.send('writeln', (_io.Lobby.send('Person').send('slotNames')));
