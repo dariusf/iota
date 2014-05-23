@@ -33,9 +33,9 @@ module.exports = {
 
 var boilerplateBefore =
 	"function execute () {\n" +
-	"	var obj = this;\n" +
+	"	var obj = this || {};\n" +
 	"\n" +
-	"	var localsProxy = new IoProxy(IoRootObject, function (message) {\n" +
+	"	var localsProxy = new _io.IoProxy(_io.IoRootObject, function (message) {\n" +
 	"		if (obj.hasOwnProperty(message)) {\n" +
 	"			this.stopPrototypePropagation();\n" +
 	"			var args = Array.prototype.slice.call(arguments, 1);\n" +
@@ -43,7 +43,7 @@ var boilerplateBefore =
 	"		}\n" +
 	"	});\n" +
 	"\n" +
-	"	var playerProxy = new IoProxy(IoRootObject, function (message) {\n" +
+	"	var playerProxy = new _io.IoProxy(_io.IoRootObject, function (message) {\n" +
 	"		if (message === 'chooseAction') {\n" +
 	"\n" +
 	"			this.stopPrototypePropagation();\n" +
@@ -65,12 +65,10 @@ var boilerplateBefore =
 	"				}\n" +
 	"			});\n" +
 	"\n" +
-	"			return slot.activate.apply(slot, [IoRootObject].concat(args));\n" +
+	"			return slot.activate.apply(slot, [_io.IoRootObject].concat(args));\n" +
 	"		}\n" +
 	"	});\n" +
 	"\n" +
-	"	Lobby.slots['player'] = playerProxy;\n" +
-	"\n" +
-	"\n";
+	"	_io.Lobby.slots['player'] = playerProxy;\n";
 
 var boilerplateAfter = "\n\n}";
