@@ -91,9 +91,12 @@ iota.parse(code);
 Returns a JavaScript object representing the syntax tree.
 
 ```js
-iota.compile(code, boilerplate);
+iota.compile(code, options);
 ```
-Returns a string of compiled JavaScript. If `boilerplate` is true, the compiled output will additionally be wrapped in a function for easier interfacing with the outside world.
+Returns a string of compiled JavaScript. `options` is a JavaScript object that allows you to tweak the behaviour of the parser:
+
+- `boilerplate` If true, the compiled output will additionally be wrapped in a function for easier interfacing with the outside world. Defaults to `false`.
+- `functionName` The name that will be given to the wrapper function if `boilerplate` is true. Defaults to `execute`.
 
 License
 -------

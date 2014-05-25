@@ -24,10 +24,11 @@
 					resultField.value = "";
 					try {
 						astField.value = JSON.stringify(iota.parse(inputField.value), null, 4);
-						jsField.value = iota.compile(inputField.value, boilerplateCheckbox.checked);
+
+						jsField.value = iota.compile(inputField.value, {boilerplate: boilerplateCheckbox.checked});
 
 						try {
-							eval(iota.compile(inputField.value, false));
+							eval(iota.compile(inputField.value));
 						} catch(e) {
 							resultField.value = e;
 						}

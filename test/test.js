@@ -36,7 +36,7 @@ files.forEach(function (file) {
 	console.log('------------------------');
 
 	try {
-		var result = iota.compile(contents, false);
+		var result = iota.compile(contents);
 
 		if (normalize(result) === normalize(expected)) {
 			console.log('Test passed:', file);

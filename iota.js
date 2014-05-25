@@ -8,10 +8,12 @@ var lib = require('./src/lib');
 var args = process.argv.slice(2);
 var filename = args[0];
 
-function compileCode(input, boilerplate) {
+function compileCode(input, options) {
+	options = options || {};
+
 	var result = compile.compile(input);
 
-	result = (boilerplate ? boilerplateBefore : "") + result + (boilerplate ? boilerplateAfter : "");
+	result = (options.boilerplate ? boilerplateBefore(options.name) : "") + result + (options.boilerplate ? boilerplateAfter : "");
 
 	return result.trim();
 }
@@ -31,8 +33,10 @@ module.exports = {
 	lib: lib
 };
 
-var boilerplateBefore =
-	"function execute () {\n" +
+function boilerplateBefore (name) {
+	name = name || "execute";
+
+	return "function " + name + " () {\n" +
 	"	var obj = this || {};\n" +
 	"\n" +
 	"	var localsProxy = new _io.IoProxy(_io.Lobby, function (message) {\n" +
@@ -60,6 +64,7 @@ var boilerplateBefore =
 	"		}\n" +
 	"	});\n" +
 	"\n" +
-	"	_io.Lobby.slots['player'] = playerProxy;\n";
+	"	_io.Lobby.slots['player'] = playerProxy;\n\n";
+}
 
 var boilerplateAfter = "\n\n}";
