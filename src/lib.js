@@ -205,6 +205,18 @@ var _io = (function () {
 	Lobby.slots['Object'] = IoRootObject;
 	Lobby.slots['Lobby'] = Lobby;
 	Lobby.proto = IoRootObject;
+
+	function unwrapIoValue (ioValue) {
+        if (ioValue.type === 'Block') {
+        	// IoMethod
+            return function () {
+                return ioValue.activate.apply(ioValue, arguments);
+            };
+        } else {
+        	// IoNumber, IoString, IoBoolean
+            return ioValue.slots.value;
+        }
+    }
 	
 	return {
 		IoObject: IoObject,
@@ -220,6 +232,7 @@ var _io = (function () {
 		IoProxy: IoProxy,
 		Lobby: Lobby,
 		IoRootObject: IoRootObject,
+		unwrapIoValue: unwrapIoValue,
 	}
 })();
 

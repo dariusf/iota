@@ -53,17 +53,7 @@ var boilerplateBefore =
 	"			slot.activate.locals = localsProxy;\n" +
 	"\n" +
 	"			// unwrap arguments\n" +
-	"			args = args.map(function (arg) {\n" +
-	"				if (arg.type === 'Block') {\n" +
-	"					// IoMethod\n" +
-	"					return function () {\n" +
-	"						return arg.activate.apply(arg, arguments);\n" +
-	"					};\n" +
-	"				} else {\n" +
-	"					// IoStringWrapper / IoNumberWrapper / IoBooleanWrapper\n" +
-	"					return arg.slots.value;\n" +
-	"				}\n" +
-	"			});\n" +
+	"			args = args.map(_io.unwrapIoValue);" +
 	"\n" +
 	"			return slot.activate.apply(slot, [_io.IoRootObject].concat(args));\n" +
 	"		}\n" +
