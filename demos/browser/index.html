@@ -14,7 +14,6 @@
 				var jsField = $('#js')[0];
 				var resultField = $('#result')[0];
 
-				var runtimeCheckbox = $('#runtimeCheckbox')[0];
 				var boilerplateCheckbox = $('#boilerplateCheckbox')[0];
 
 				window.console.log = function (message) {
@@ -25,7 +24,7 @@
 					resultField.value = "";
 					try {
 						astField.value = JSON.stringify(iota.parse(inputField.value), null, 4);
-						jsField.value = iota.compile(inputField.value, runtimeCheckbox.checked, boilerplateCheckbox.checked);
+						jsField.value = iota.compile(inputField.value, boilerplateCheckbox.checked);
 
 						try {
 							eval(iota.compile(inputField.value, false));
@@ -39,7 +38,6 @@
 				}
 
 				inputField.addEventListener("keyup", update);
-				runtimeCheckbox.addEventListener("change", update);
 				boilerplateCheckbox.addEventListener("change", update);
 
 				inputField.value = "fact := method(n, if (n == 0, 1, n * fact (n - 1)))\nwriteln(fact(5))";
@@ -54,7 +52,6 @@
 		<p>Iota is a source-to-source compiler that translates <a href="http://iolanguage.org/">Io</a> code into JavaScript.</p>
 		<textarea id="input" rows="5" cols="30" placeholder="Your Io code here"></textarea>
 		<div id="options">
-			<input type="checkbox" id="runtimeCheckbox">Runtime library</input>
 			<input type="checkbox" id="boilerplateCheckbox">Boilerplate</input>
 		</div>
 		<textarea id="ast" readonly rows="15" cols="30" placeholder="Compiled JavaScript"></textarea>
