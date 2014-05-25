@@ -35,7 +35,7 @@ var boilerplateBefore =
 	"function execute () {\n" +
 	"	var obj = this || {};\n" +
 	"\n" +
-	"	var localsProxy = new _io.IoProxy(_io.IoRootObject, function (message) {\n" +
+	"	var localsProxy = new _io.IoProxy(_io.Lobby, function (message) {\n" +
 	"		if (obj.hasOwnProperty(message)) {\n" +
 	"			this.stopPrototypePropagation();\n" +
 	"			var args = Array.prototype.slice.call(arguments, 1);\n" +
@@ -43,7 +43,7 @@ var boilerplateBefore =
 	"		}\n" +
 	"	});\n" +
 	"\n" +
-	"	var playerProxy = new _io.IoProxy(_io.IoRootObject, function (message) {\n" +
+	"	var playerProxy = new _io.IoProxy(_io.Lobby, function (message) {\n" +
 	"		if (message === 'chooseAction') {\n" +
 	"\n" +
 	"			this.stopPrototypePropagation();\n" +
