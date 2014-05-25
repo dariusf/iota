@@ -39,6 +39,7 @@ var boilerplateBefore =
 	"		if (obj.hasOwnProperty(message)) {\n" +
 	"			this.stopPrototypePropagation();\n" +
 	"			var args = Array.prototype.slice.call(arguments, 1);\n" +
+	"			args = args.map(_io.unwrapIoValue);" +
 	"			return obj[message].apply(obj, args);\n" +
 	"		}\n" +
 	"	});\n" +
