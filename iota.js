@@ -13,7 +13,7 @@ function compileCode(input, options) {
 
 	var result = compile.compile(input);
 
-	result = (options.boilerplate ? boilerplateBefore(options.name) : "") + result + (options.boilerplate ? boilerplateAfter : "");
+	result = (options.boilerplate ? boilerplateBefore(options.functionName) : "") + result + (options.boilerplate ? boilerplateAfter : "");
 
 	return result.trim();
 }
