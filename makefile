@@ -5,4 +5,4 @@ update:
 	git checkout master $(BROWSER)/index.html $(BROWSER)/style.css
 	cp $(BROWSER)/index.html index.html -f
 	cp $(BROWSER)/style.css style.css -f
-	cp $(BROWSER)/bundle.js bundle.js -f
+	cp $(BROWSER)/iota-browser.js iota-browser.js -f
