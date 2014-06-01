@@ -35,34 +35,27 @@ module.exports = {
 };
 
 function boilerplateBefore (options) {
-	name = options.functionName || "execute";
+	name = options.functionName || "plan";
 	var prefix = options.omitLobbyPrefix ? "_" : "_io."
 
 	return "function " + name + " () {\n" +
 	"	var obj = this || {};\n" +
 	"\n" +
-	"	var localsProxy = new _io.IoProxy(" + prefix + "Lobby, function (message) {\n" +
+	"	var localsProxy = _io.IoProxy(" + prefix + "Lobby, function (message) {\n" +
 	"		if (obj.hasOwnProperty(message)) {\n" +
 	"			this.stopPrototypePropagation();\n" +
 	"			var args = Array.prototype.slice.call(arguments, 1);\n" +
-	"			args = args.map(_io.unwrapIoValue);" +
+	"			args = args.map(_io.unwrapIoValue);\n" +
 	"			return obj[message].apply(obj, args);\n" +
 	"		}\n" +
 	"	});\n" +
 	"\n" +
-	"	var playerProxy = new _io.IoProxy(" + prefix + "Lobby, function (message) {\n" +
+	"	var playerProxy = _io.IoProxy(" + prefix + "Lobby, function (message) {\n" +
 	"		if (message === 'chooseAction') {\n" +
-	"\n" +
 	"			this.stopPrototypePropagation();\n" +
-	"\n" +
-	"			var args = Array.prototype.slice.call(arguments, 1);\n" +
 	"			var slot = this.findSlot(message);\n" +
 	"			slot.activate.locals = localsProxy;\n" +
-	"\n" +
-	"			// unwrap arguments\n" +
-	"			args = args.map(_io.unwrapIoValue);" +
-	"\n" +
-	"			return slot.activate.apply(slot, [_io.IoRootObject].concat(args));\n" +
+	"			return slot.activate.apply(slot);\n" +
 	"		}\n" +
 	"	});\n" +
 	"\n" +
