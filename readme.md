@@ -97,6 +97,7 @@ Returns a string of compiled JavaScript. `options` is a JavaScript object that a
 
 - `boilerplate` If true, the compiled output will additionally be wrapped in a function for easier interfacing with the outside world. Defaults to `false`.
 - `functionName` The name that will be given to the wrapper function if `boilerplate` is true. Defaults to `execute`.
+- `omitLobbyPrefix` If true, `Lobby` will be referenced without the `_io` prefix. It must then be bound in the scope in which the compiled code in executed.
 
 License
 -------

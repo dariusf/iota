@@ -4,6 +4,14 @@ var escodegen = require('escodegen');
 var parser = require('./parser');
 var pratt = require('./pratt');
 
+var options = {
+	omitLobbyPrefix: false
+};
+
+function setOptions (userOptions) {
+	options.omitLobbyPrefix = userOptions.omitLobbyPrefix || false;
+}
+
 function applyMacros (ast) {
 
 	// An AST is a list of chains
@@ -167,7 +175,9 @@ function parse (code) {
 
 	var generated = [];
 	ast.forEach(function (chain) {
-		chain = compile(chain, astIdentifier('Lobby'), astIdentifier('Lobby'));
+		chain = compile(chain,
+			options.omitLobbyPrefix ? {type: "Identifier", name: "_Lobby"} : astIdentifier('Lobby'),
+			options.omitLobbyPrefix ? {type: "Identifier", name: "_Lobby"} : astIdentifier('Lobby'));
 		generated.push(chain);
 	});
 	
@@ -401,5 +411,6 @@ function astIdentifier (id) {//, loc) {
 
 module.exports = {
 	parse: parse,
-	compile: parseAndEmit
+	compile: parseAndEmit,
+	setOptions: setOptions,
 };

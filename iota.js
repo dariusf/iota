@@ -11,9 +11,10 @@ var filename = args[0];
 function compileCode(input, options) {
 	options = options || {};
 
-	var result = compile.compile(input);
+	compile.setOptions(options);
 
-	result = (options.boilerplate ? boilerplateBefore(options.functionName) : "") + result + (options.boilerplate ? boilerplateAfter : "");
+	var result = compile.compile(input);
+	result = (options.boilerplate ? boilerplateBefore(options) : "") + result + (options.boilerplate ? boilerplateAfter : "");
 
 	return result.trim();
 }
@@ -33,13 +34,14 @@ module.exports = {
 	lib: lib
 };
 
-function boilerplateBefore (name) {
-	name = name || "execute";
+function boilerplateBefore (options) {
+	name = options.functionName || "execute";
+	var prefix = options.omitLobbyPrefix ? "_" : "_io."
 
 	return "function " + name + " () {\n" +
 	"	var obj = this || {};\n" +
 	"\n" +
-	"	var localsProxy = new _io.IoProxy(_io.Lobby, function (message) {\n" +
+	"	var localsProxy = new _io.IoProxy(" + prefix + "Lobby, function (message) {\n" +
 	"		if (obj.hasOwnProperty(message)) {\n" +
 	"			this.stopPrototypePropagation();\n" +
 	"			var args = Array.prototype.slice.call(arguments, 1);\n" +
@@ -48,7 +50,7 @@ function boilerplateBefore (name) {
 	"		}\n" +
 	"	});\n" +
 	"\n" +
-	"	var playerProxy = new _io.IoProxy(_io.Lobby, function (message) {\n" +
+	"	var playerProxy = new _io.IoProxy(" + prefix + "Lobby, function (message) {\n" +
 	"		if (message === 'chooseAction') {\n" +
 	"\n" +
 	"			this.stopPrototypePropagation();\n" +
@@ -64,7 +66,7 @@ function boilerplateBefore (name) {
 	"		}\n" +
 	"	});\n" +
 	"\n" +
-	"	_io.Lobby.slots['player'] = playerProxy;\n\n";
+	"	" + prefix + "Lobby.slots['player'] = playerProxy;\n\n";
 }
 
 var boilerplateAfter = "\n\n}";
