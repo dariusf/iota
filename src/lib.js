@@ -2,10 +2,17 @@
 var _io = (function () {
 
 	function IoObject (slots, proto) {
-		this.slots = slots || {};
-		this.proto = proto;
+		var self = {};
+		self.slots = slots || {};
+		self.proto = proto;
+
+		self.findSlot = IoObject.findSlot;
+		self.send = IoObject.send;
+
+		return self;
 	}
-	IoObject.prototype.findSlot = function (slot) {
+
+	IoObject.findSlot = function (slot) {
 		if (this === IoRootObject || this.slots.hasOwnProperty(slot)) {
 			return this.slots[slot];
 		} else if (this.proto) {
@@ -13,8 +20,9 @@ var _io = (function () {
 		} else {
 			return null;
 		}
-	}
-	IoObject.prototype.send = function (message) {
+	};
+
+	IoObject.send = function (message) {
 		var args = Array.prototype.slice.call(arguments, 1);
 		var slot = this.findSlot(message);
 
@@ -33,16 +41,16 @@ var _io = (function () {
 		}
 	};
 
-	var Lobby = new IoObject();
+	var Lobby = IoObject();
 
-	var IoRootObject = new IoObject({
+	var IoRootObject = IoObject({
 		type: "Object",
 		clone: function (name, instance) {
 			var slots = {};
 			if (!instance) {
 				slots.type = name;
 			}
-			return new IoObject(slots, this);
+			return IoObject(slots, this);
 		},
 		slotNames: function () {
 			return Object.keys(this.slots);
@@ -88,7 +96,7 @@ var _io = (function () {
 				var self = arguments[0];
 				var args = Array.prototype.slice.call(arguments, 1);
 
-				var locals = method.activate.locals || new IoObject({}, self);
+				var locals = method.activate.locals || IoObject({}, self);
 				for (var i=0; i<args.length; i++) {
 					locals.send('setSlot', IoStringWrapper(parameters[i]), args[i]);
 					if (i > parameters) break; // over-application
@@ -113,7 +121,7 @@ var _io = (function () {
 		}
 	}, Lobby);
 
-	var IoNumber = new IoObject({
+	var IoNumber = IoObject({
 		"+": function (other) {
 			return IoNumberWrapper(this.slots.value + other.slots.value);
 		},
@@ -131,10 +139,10 @@ var _io = (function () {
 		}
 	}, IoObject);
 	function IoNumberWrapper (value) {
-		return new IoObject({value: value}, IoNumber);
+		return IoObject({value: value}, IoNumber);
 	}
 
-	var IoString = new IoObject({
+	var IoString = IoObject({
 		charAt: function (n) {
 			n = n.slots.value;
 			return IoStringWrapper(this.slots.value.charAt(n));
@@ -144,10 +152,10 @@ var _io = (function () {
 		}
 	}, IoObject);
 	function IoStringWrapper (value) {
-		return new IoObject({value: value}, IoString);
+		return IoObject({value: value}, IoString);
 	}
 
-	var IoTrue = new IoObject({
+	var IoTrue = IoObject({
 		and: function (other) {
 			if (other === this) return this;
 			else return IoFalse;
@@ -157,7 +165,7 @@ var _io = (function () {
 		}
 	}, IoObject);
 
-	var IoFalse = new IoObject({
+	var IoFalse = IoObject({
 		and: function (other) {
 			return IoFalse;
 		},
@@ -173,7 +181,7 @@ var _io = (function () {
 		return {f:f, eval: function() {return f.apply(null, Array.prototype.slice.call(arguments));}};
 	}
 
-	var IoMethod = new IoObject({
+	var IoMethod = IoObject({
 		type: "Block",
 		activate: null // defined later
 	}, IoRootObject);
@@ -183,7 +191,7 @@ var _io = (function () {
 	// For internal use only.
 
 	function IoProxy (forObject, action) {
-		var p = new IoObject({type: "Proxy"}, forObject);
+		var p = IoObject({type: "Proxy"}, forObject);
 		var stop = false;
 
 		p.send = function (message) {
@@ -191,7 +199,7 @@ var _io = (function () {
 			if (stop) {
 				return result;
 			} else {
-				return IoObject.prototype.send.apply(p, arguments);
+				return IoObject.send.apply(p, arguments);
 			}
 		};
 		p.stopPrototypePropagation = function () {
@@ -207,16 +215,16 @@ var _io = (function () {
 	Lobby.proto = IoRootObject;
 
 	function unwrapIoValue (ioValue) {
-        if (ioValue.type === 'Block') {
-        	// IoMethod
-            return function () {
-                return ioValue.activate.apply(ioValue, arguments);
-            };
-        } else {
-        	// IoNumber, IoString, IoBoolean
-            return ioValue.slots.value;
-        }
-    }
+		if (ioValue.type === 'Block') {
+			// IoMethod
+			return function () {
+				return ioValue.activate.apply(ioValue, arguments);
+			};
+		} else {
+			// IoNumber, IoString, IoBoolean
+			return ioValue.slots.value;
+		}
+	}
 	
 	return {
 		IoObject: IoObject,
