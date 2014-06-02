@@ -44,7 +44,7 @@ var _io = (function () {
 				}
 			}
 		} else {
-			console.log("unrecognized message '" + message + "'");
+			console.warn("Object send: unrecognized message '" + message + "'");
 		}
 	};
 
@@ -80,7 +80,7 @@ var _io = (function () {
 			if (this.slots[slot]) {
 				this.slots[slot] = value;
 			} else {
-				throw "cannot update slot '" + slot + "' that doesn't exist";
+				throw new Error("Object updateSlot: slot '" + slot + "' doesn't exist; cannot update");
 			}
 		},
 		toIoString: function () {
@@ -236,6 +236,22 @@ var _io = (function () {
 			return ioValue.slots.value;
 		}
 	}
+
+	function wrapJSValue (jsValue) {
+		var type = typeof jsValue;
+		switch (type) {
+		case 'number':
+			return IoNumberWrapper(jsValue);
+		case 'string':
+			return IoStringWrapper(jsValue);
+		case 'boolean':
+			return IoBooleanWrapper(jsValue);
+		case 'function':
+			throw new Error('wrapJSValue: wrapping functions is not yet implemented');
+		default:
+			throw new Error('wrapJSValue: invalid object type ' + type);
+		}
+	}
 	
 	return {
 		IoObject: IoObject,
@@ -252,6 +268,7 @@ var _io = (function () {
 		Lobby: Lobby,
 		IoRootObject: IoRootObject,
 		unwrapIoValue: unwrapIoValue,
+		wrapJSValue: wrapJSValue,
 	}
 })();
 

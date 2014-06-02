@@ -46,7 +46,7 @@ function boilerplateBefore (options) {
 	"			this.stopPrototypePropagation();\n" +
 	"			var args = Array.prototype.slice.call(arguments, 1);\n" +
 	"			args = args.map(_io.unwrapIoValue);\n" +
-	"			return obj[message].apply(obj, args);\n" +
+	"			return _io.wrapJSValue(obj[message].apply(obj, args));\n" +
 	"		}\n" +
 	"	});\n" +
 	"\n" +
