@@ -6,14 +6,21 @@ var _io = (function () {
 		self.slots = slots || {};
 		self.proto = proto;
 
+		self.identity = Math.random() + "";
+
 		self.findSlot = IoObject.findSlot;
 		self.send = IoObject.send;
+		self.equals = IoObject.equals;
 
 		return self;
 	}
 
+	IoObject.equals = function (other) {
+		return this.identity === other.identity;
+	};
+
 	IoObject.findSlot = function (slot) {
-		if (this === IoRootObject || this.slots.hasOwnProperty(slot)) {
+		if (this.isRootObject || this.slots.hasOwnProperty(slot)) {
 			return this.slots[slot];
 		} else if (this.proto) {
 			return this.proto.findSlot(slot);
@@ -42,6 +49,7 @@ var _io = (function () {
 	};
 
 	var Lobby = IoObject();
+	Lobby.isLobby = true;
 
 	var IoRootObject = IoObject({
 		type: "Object",
@@ -59,12 +67,12 @@ var _io = (function () {
 			// TODO this method only works for user-defined methods for now,
 			// which are IoObjects and can respond to messages.
 			// At the moment all primitive methods are raw functions and won't work.
-			slotName = slotName.slots.value;
+			slotName = unwrapIoValue(slotName);
 			var slot = this.findSlot(slotName);
 			return slot;
 		},
 		setSlot: function (slot, value) {
-			slot = slot.slots.value;
+			slot = unwrapIoValue(slot);
 			this.slots[slot] = value;
 			return null; // IoNil
 		},
@@ -82,7 +90,7 @@ var _io = (function () {
 			return this.proto;
 		},
 		writeln: function (thing) {
-			console.log(thing.send('toIoString').slots.value);
+			console.log(unwrapIoValue(thing.send('toIoString')));
 		},
 		method: function () {
 			var args = Array.prototype.slice.call(arguments);
@@ -109,7 +117,7 @@ var _io = (function () {
 			return method;
 		},
 		if: function (condition, conseq, alt) {
-			if (condition === IoTrue) {
+			if (condition.equals(IoTrue)) {
 				return conseq.eval();
 			}
 			else {
@@ -117,47 +125,50 @@ var _io = (function () {
 			}
 		},
 		"==": function (other) {
-			return IoBooleanWrapper(this === other);
+			return IoBooleanWrapper(this.equals(other));
 		}
 	}, Lobby);
+	IoRootObject.isRootObject = true;
 
 	var IoNumber = IoObject({
 		"+": function (other) {
-			return IoNumberWrapper(this.slots.value + other.slots.value);
+			return IoNumberWrapper(unwrapIoValue(this) + unwrapIoValue(other));
 		},
 		"*": function (other) {
-			return IoNumberWrapper(this.slots.value * other.slots.value);
+			return IoNumberWrapper(unwrapIoValue(this) * unwrapIoValue(other));
 		},
 		"-": function (other) {
-			return IoNumberWrapper(this.slots.value - other.slots.value);
+			return IoNumberWrapper(unwrapIoValue(this) - unwrapIoValue(other));
 		},
 		"==": function (other) {
-			return IoBooleanWrapper(this.slots.value === other.slots.value);
+			return IoBooleanWrapper(unwrapIoValue(this) === unwrapIoValue(other));
 		},
 		toIoString: function () {
-			return IoStringWrapper(this.slots.value);
+			return IoStringWrapper(unwrapIoValue(this));
 		}
 	}, IoObject);
+
 	function IoNumberWrapper (value) {
 		return IoObject({value: value}, IoNumber);
 	}
 
 	var IoString = IoObject({
 		charAt: function (n) {
-			n = n.slots.value;
-			return IoStringWrapper(this.slots.value.charAt(n));
+			n = unwrapIoValue(n);
+			return IoStringWrapper(unwrapIoValue(this).charAt(n));
 		},
 		toIoString: function () {
 			return this;
 		}
 	}, IoObject);
+	
 	function IoStringWrapper (value) {
 		return IoObject({value: value}, IoString);
 	}
 
 	var IoTrue = IoObject({
 		and: function (other) {
-			if (other === this) return this;
+			if (other.equals(this)) return this;
 			else return IoFalse;
 		},
 		toIoString: function () {
@@ -192,18 +203,18 @@ var _io = (function () {
 
 	function IoProxy (forObject, action) {
 		var p = IoObject({type: "Proxy"}, forObject);
-		var stop = false;
-
+		
+		p.stop = false;
 		p.send = function (message) {
 			var result = action.apply(this, arguments);
-			if (stop) {
+			if (this.stop) {
 				return result;
 			} else {
 				return IoObject.send.apply(p, arguments);
 			}
 		};
 		p.stopPrototypePropagation = function () {
-			stop = true;
+			this.stop = true;
 		};
 		return p;
 	}
