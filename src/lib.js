@@ -135,7 +135,7 @@ var _io = (function () {
 		toIoString: function () {
 			return IoStringWrapper("nil");
 		}
-	});
+	}, IoRootObject);
 
 	var IoNumber = IoObject({
 		"+": function (other) {
@@ -153,7 +153,7 @@ var _io = (function () {
 		toIoString: function () {
 			return IoStringWrapper(unwrapIoValue(this));
 		}
-	}, IoObject);
+	}, IoRootObject);
 
 	function IoNumberWrapper (value) {
 		return IoObject({value: value}, IoNumber);
@@ -167,7 +167,7 @@ var _io = (function () {
 		toIoString: function () {
 			return this;
 		}
-	}, IoObject);
+	}, IoRootObject);
 	
 	function IoStringWrapper (value) {
 		return IoObject({value: value}, IoString);
@@ -181,7 +181,7 @@ var _io = (function () {
 		toIoString: function () {
 			return IoStringWrapper("true");
 		}
-	}, IoObject);
+	}, IoRootObject);
 
 	var IoFalse = IoObject({
 		and: function (other) {
@@ -190,7 +190,7 @@ var _io = (function () {
 		toIoString: function () {
 			return IoStringWrapper("false");
 		}
-	}, IoObject);
+	}, IoRootObject);
 
 	function IoBooleanWrapper (bool) {
 		return bool ? IoTrue : IoFalse;
@@ -250,7 +250,7 @@ var _io = (function () {
 	}
 
 	function wrapJSValue (jsValue) {
-		
+
 		if (jsValue === undefined || jsValue === null) {
 			return IoNil;
 		}
