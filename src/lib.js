@@ -217,17 +217,13 @@ var _io = (function () {
 	function IoProxy (forObject, action) {
 		var p = IoObject({type: "Proxy"}, forObject);
 		
-		p.stop = false;
 		p.send = function (message) {
 			var result = action.apply(this, arguments);
-			if (this.stop) {
+			if (result) {
 				return result;
 			} else {
 				return IoObject.send.apply(p, arguments);
 			}
-		};
-		p.stopPrototypePropagation = function () {
-			this.stop = true;
 		};
 		return p;
 	}
@@ -278,8 +274,7 @@ var _io = (function () {
 	var Proxy = {
 		set: function(obj) {
 			var actualProxy = IoProxy(Lobby, function(message) {
-				if (this.obj && this.obj.hasOwnProperty(message)) {
-					this.stopPrototypePropagation();
+				if (this.obj && this.obj[message]) {
 					var args = Array.prototype.slice.call(arguments, 1);
 					args = args.map(_io.unwrapIoValue);
 					return wrapJSValue(this.obj[message].apply(this.obj, args));
