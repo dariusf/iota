@@ -39,27 +39,8 @@ function boilerplateBefore (options) {
 	var prefix = options.omitLobbyPrefix ? "_" : "_io."
 
 	return "function " + name + " () {\n" +
-	"	var obj = this || {};\n" +
-	"\n" +
-	"	var localsProxy = _io.IoProxy(" + prefix + "Lobby, function (message) {\n" +
-	"		if (obj.hasOwnProperty(message)) {\n" +
-	"			this.stopPrototypePropagation();\n" +
-	"			var args = Array.prototype.slice.call(arguments, 1);\n" +
-	"			args = args.map(_io.unwrapIoValue);\n" +
-	"			return _io.wrapJSValue(obj[message].apply(obj, args));\n" +
-	"		}\n" +
-	"	});\n" +
-	"\n" +
-	"	var playerProxy = _io.IoProxy(" + prefix + "Lobby, function (message) {\n" +
-	"		if (message === 'chooseAction') {\n" +
-	"			this.stopPrototypePropagation();\n" +
-	"			var slot = this.findSlot(message);\n" +
-	"			slot.activate.locals = localsProxy;\n" +
-	"			return slot.activate.apply(slot);\n" +
-	"		}\n" +
-	"	});\n" +
-	"\n" +
-	"	" + prefix + "Lobby.slots['player'] = playerProxy;\n\n";
+		"	var obj = this || {};\n" +
+		"\n";
 }
 
 var boilerplateAfter = "\n\n}";

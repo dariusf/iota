@@ -5,11 +5,13 @@ var parser = require('./parser');
 var pratt = require('./pratt');
 
 var options = {
-	omitLobbyPrefix: false
+	omitLobbyPrefix: false,
+	useProxy: false,
 };
 
 function setOptions (userOptions) {
 	options.omitLobbyPrefix = userOptions.omitLobbyPrefix || false;
+	options.useProxy = userOptions.useProxy || false;
 }
 
 function applyMacros (ast) {
@@ -175,9 +177,27 @@ function parse (code) {
 
 	var generated = [];
 	ast.forEach(function (chain) {
+
+		var proxy = {
+			"type": "CallExpression",
+			"callee": {
+				"type": "MemberExpression",
+				"computed": false,
+				"object": astIdentifier("Proxy"),
+				"property": {
+					"type": "Identifier",
+					"name": "set"
+				}
+			},
+			"arguments": [{
+				"type": "Identifier",
+				"name": "obj"
+			}]
+		};
+
 		chain = compile(chain,
-			options.omitLobbyPrefix ? {type: "Identifier", name: "_Lobby"} : astIdentifier('Lobby'),
-			options.omitLobbyPrefix ? {type: "Identifier", name: "_Lobby"} : astIdentifier('Lobby'));
+			options.omitLobbyPrefix ? {type: "Identifier", name: "_Lobby"} : (options.useProxy ? proxy : astIdentifier('Lobby')),
+			options.omitLobbyPrefix ? {type: "Identifier", name: "_Lobby"} : (options.useProxy ? proxy : astIdentifier('Lobby')));
 		generated.push(chain);
 	});
 	

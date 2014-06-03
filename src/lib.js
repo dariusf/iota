@@ -104,7 +104,7 @@ var _io = (function () {
 				var self = arguments[0];
 				var args = Array.prototype.slice.call(arguments, 1);
 
-				var locals = method.activate.locals || IoObject({}, self);
+				var locals = IoObject({}, self);
 				for (var i=0; i<args.length; i++) {
 					locals.send('setSlot', IoStringWrapper(parameters[i]), args[i]);
 					if (i > parameters) break; // over-application
@@ -238,6 +238,7 @@ var _io = (function () {
 	}
 
 	function wrapJSValue (jsValue) {
+		if (!jsValue) return null; // IoNil
 		var type = typeof jsValue;
 		switch (type) {
 		case 'number':
@@ -252,6 +253,22 @@ var _io = (function () {
 			throw new Error('wrapJSValue: invalid object type ' + type);
 		}
 	}
+
+	var Proxy = {
+		set: function(obj) {
+			var actualProxy = IoProxy(Lobby, function(message) {
+				if (this.obj && this.obj.hasOwnProperty(message)) {
+					this.stopPrototypePropagation();
+					var args = Array.prototype.slice.call(arguments, 1);
+					args = args.map(_io.unwrapIoValue);
+					return wrapJSValue(this.obj[message].apply(this.obj, args));
+				}
+			});
+			actualProxy.obj = obj;
+
+			return actualProxy;
+		}
+	};
 	
 	return {
 		IoObject: IoObject,
@@ -269,6 +286,7 @@ var _io = (function () {
 		IoRootObject: IoRootObject,
 		unwrapIoValue: unwrapIoValue,
 		wrapJSValue: wrapJSValue,
+		Proxy: Proxy,
 	}
 })();
 
