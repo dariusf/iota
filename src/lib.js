@@ -74,7 +74,7 @@ var _io = (function () {
 		setSlot: function (slot, value) {
 			slot = unwrapIoValue(slot);
 			this.slots[slot] = value;
-			return null; // IoNil
+			return IoNil;
 		},
 		updateSlot: function (slot, value) {
 			if (this.slots[slot]) {
@@ -91,6 +91,7 @@ var _io = (function () {
 		},
 		writeln: function (thing) {
 			console.log(unwrapIoValue(thing.send('toIoString')));
+			return IoNil;
 		},
 		method: function () {
 			var args = Array.prototype.slice.call(arguments);
@@ -129,6 +130,12 @@ var _io = (function () {
 		}
 	}, Lobby);
 	IoRootObject.isRootObject = true;
+
+	var IoNil = IoObject({
+		toIoString: function () {
+			return IoStringWrapper("nil");
+		}
+	});
 
 	var IoNumber = IoObject({
 		"+": function (other) {
@@ -184,6 +191,7 @@ var _io = (function () {
 			return IoStringWrapper("false");
 		}
 	}, IoObject);
+
 	function IoBooleanWrapper (bool) {
 		return bool ? IoTrue : IoFalse;
 	}
@@ -226,6 +234,10 @@ var _io = (function () {
 	Lobby.proto = IoRootObject;
 
 	function unwrapIoValue (ioValue) {
+		if (!ioValue) {
+			throw new Error('unwrapIoValue: attempt to unwrap invalid Io value ' + ioValue);
+		}
+
 		if (ioValue.type === 'Block') {
 			// IoMethod
 			return function () {
@@ -238,7 +250,11 @@ var _io = (function () {
 	}
 
 	function wrapJSValue (jsValue) {
-		if (!jsValue) return null; // IoNil
+		
+		if (jsValue === undefined || jsValue === null) {
+			return IoNil;
+		}
+
 		var type = typeof jsValue;
 		switch (type) {
 		case 'number':
@@ -272,6 +288,7 @@ var _io = (function () {
 	
 	return {
 		IoObject: IoObject,
+		IoNil: IoNil,
 		IoNumber: IoNumber,
 		IoNumberWrapper: IoNumberWrapper,
 		IoString: IoString,
