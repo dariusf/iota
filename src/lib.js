@@ -52,7 +52,7 @@ var _io = (function () {
 	Lobby.isLobby = true;
 
 	var IoRootObject = IoObject({
-		type: "Object",
+		type: 'Object',
 		clone: function (name, instance) {
 			var slots = {};
 			if (!instance) {
@@ -206,7 +206,7 @@ var _io = (function () {
 	}
 
 	var IoMethod = IoObject({
-		type: "Block",
+		type: 'Block',
 		activate: null // defined later
 	}, IoRootObject);
 
@@ -215,7 +215,7 @@ var _io = (function () {
 	// For internal use only.
 
 	function IoProxy (forObject, action) {
-		var p = IoObject({type: "Proxy"}, forObject);
+		var p = IoObject({type: 'Proxy'}, forObject);
 		
 		p.send = function (message) {
 			var result = action.apply(this, arguments);
@@ -239,14 +239,21 @@ var _io = (function () {
 			throw new Error('unwrapIoValue: attempt to unwrap invalid Io value ' + ioValue);
 		}
 
-		if (ioValue.type === 'Block') {
-			// IoMethod
-			return function () {
-				return ioValue.activate.apply(ioValue, arguments);
-			};
-		} else {
-			// IoNumber, IoString, IoBoolean
+		var type = ioValue.send('type');
+
+		if (!type) {
+			throw new Error('unwrapIoValue: attempt to unwrap value with invalid type ' + ioValue);
+		}
+
+		switch (type) {
+		case 'Nil':
+			return undefined;
+		case 'Number':
+		case 'String':
+		case 'Boolean':
 			return ioValue.slots.value;
+		default:
+			throw new Error('unwrapIoValue: attempt to unwrap value with invalid type ' + ioValue);
 		}
 	}
 
