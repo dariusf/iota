@@ -44,11 +44,11 @@ var _io = (function () {
 				}
 			}
 		} else {
-			console.warn("Object send: unrecognized message '" + message + "'");
+			console.warn("Object send: unrecognized message '" + message + "' from object of type " + this.slots.type);
 		}
 	};
 
-	var Lobby = IoObject();
+	var Lobby = IoObject({type: 'Lobby'});
 	Lobby.isLobby = true;
 
 	var IoRootObject = IoObject({
@@ -132,12 +132,14 @@ var _io = (function () {
 	IoRootObject.isRootObject = true;
 
 	var IoNil = IoObject({
+		type: 'Nil',
 		toIoString: function () {
 			return IoStringWrapper("nil");
 		}
 	}, IoRootObject);
 
 	var IoNumber = IoObject({
+		type: 'Number',
 		"+": function (other) {
 			return IoNumberWrapper(unwrapIoValue(this) + unwrapIoValue(other));
 		},
@@ -160,6 +162,7 @@ var _io = (function () {
 	}
 
 	var IoString = IoObject({
+		type: 'String',
 		charAt: function (n) {
 			n = unwrapIoValue(n);
 			return IoStringWrapper(unwrapIoValue(this).charAt(n));
@@ -174,6 +177,7 @@ var _io = (function () {
 	}
 
 	var IoTrue = IoObject({
+		type: 'Boolean',
 		and: function (other) {
 			if (other.equals(this)) return this;
 			else return IoFalse;
@@ -184,6 +188,7 @@ var _io = (function () {
 	}, IoRootObject);
 
 	var IoFalse = IoObject({
+		type: 'Boolean',
 		and: function (other) {
 			return IoFalse;
 		},
