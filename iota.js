@@ -14,7 +14,6 @@ function compileCode(input, options) {
 	compile.setOptions(options);
 
 	var result = compile.compile(input);
-	result = (options.boilerplate ? boilerplateBefore(options) : "") + result + (options.boilerplate ? boilerplateAfter : "");
 
 	return result.trim();
 }
@@ -33,14 +32,3 @@ module.exports = {
 	parse: parse,
 	lib: lib
 };
-
-function boilerplateBefore (options) {
-	name = options.functionName || "plan";
-	var prefix = options.omitLobbyPrefix ? "_" : "_io."
-
-	return "function " + name + " () {\n" +
-		"	var obj = this || {};\n" +
-		"\n";
-}
-
-var boilerplateAfter = "\n\n}";

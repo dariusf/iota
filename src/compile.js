@@ -4,14 +4,13 @@ var escodegen = require('escodegen');
 var parser = require('./parser');
 var pratt = require('./pratt');
 
-var options = {
-	omitLobbyPrefix: false,
-	useProxy: false,
-};
+var options = {};
 
 function setOptions (userOptions) {
 	options.omitLobbyPrefix = userOptions.omitLobbyPrefix || false;
 	options.useProxy = userOptions.useProxy || false;
+	options.boilerplate = userOptions.boilerplate || false;
+	options.functionName = userOptions.functionName || 'plan';
 }
 
 function applyMacros (ast) {
@@ -201,7 +200,6 @@ function parse (code) {
 		generated.push(chain);
 	});
 	
-	// TODO make this a sequence statement?
 	generated = {
 		type: "Program",
 		body: generated.map(function (expr) {
@@ -212,11 +210,88 @@ function parse (code) {
 		})
 	};
 
+	if (options.boilerplate) {
+		generated.body[generated.body.length-1] = implicitReturnStatement(generated.body[generated.body.length-1]);
+		generated = wrapInFunction(generated);
+	}
+
 	return generated;
 }
 
 function parseAndEmit (code) {
 	return escodegen.generate(parse(code));
+}
+
+function wrapInFunction (program) {
+
+	return {
+		type: "Program",
+		body: [{
+			"type": "FunctionDeclaration",
+			"id": {
+				"type": "Identifier",
+				"name": options.functionName
+			},
+			"params": [],
+			"body": {
+				"type": "BlockStatement",
+				"body": [{
+					"type": "VariableDeclaration",
+					"declarations": [{
+						"type": "VariableDeclarator",
+						"id": {
+							"type": "Identifier",
+							"name": "obj"
+						},
+						"init": {
+							"type": "LogicalExpression",
+							"operator": "||",
+							"left": {
+								"type": "ThisExpression"
+							},
+							"right": {
+								"type": "ObjectExpression",
+								"properties": []
+							}
+						}
+					}],
+					"kind": "var"
+				}].concat(program.body)
+			}
+		}]
+	};
+}
+
+function implicitReturnStatement(expressionStatement) {
+
+	function unwrap(expr) {
+		return {
+			type: "CallExpression",
+			callee: {
+				type: "MemberExpression",
+				computed: false,
+				object: {
+					type: "Identifier",
+					name: "_io"
+				},
+				property: {
+					type: "Identifier",
+					name: "unwrapIoValue"
+				}
+			},
+			arguments: [expr]
+		};
+	}
+
+	// var program = ast;
+	// var wrapperFunction = program.body[0];
+	// var blockStatement = wrapperFunction.body;
+	// var lastExpressionStatement = blockStatement.body[blockStatement.body.length - 1];
+	// blockStatement.body[blockStatement.body.length - 1] = ;
+	return {
+		type: "ReturnStatement",
+		argument: unwrap(expressionStatement.expression)
+	};
 }
 
 function getEnclosingRange (exprlist) {
