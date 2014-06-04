@@ -7,10 +7,11 @@ var pratt = require('./pratt');
 var options = {};
 
 function setOptions (userOptions) {
-	options.omitLobbyPrefix = userOptions.omitLobbyPrefix || false;
+	options.wrapWithFunction = userOptions.wrapWithFunction || false;
 	options.useProxy = userOptions.useProxy || false;
-	options.boilerplate = userOptions.boilerplate || false;
 	options.functionName = userOptions.functionName || 'plan';
+	options.runtimeLib = userOptions.runtimeLib || '_io';
+	options.self = userOptions.self || 'self';
 }
 
 function applyMacros (ast) {
@@ -190,13 +191,13 @@ function parse (code) {
 			},
 			"arguments": [{
 				"type": "Identifier",
-				"name": "obj"
+				"name": options.self
 			}]
 		};
 
 		chain = compile(chain,
-			options.omitLobbyPrefix ? {type: "Identifier", name: "_Lobby"} : (options.useProxy ? proxy : astIdentifier('Lobby')),
-			options.omitLobbyPrefix ? {type: "Identifier", name: "_Lobby"} : (options.useProxy ? proxy : astIdentifier('Lobby')));
+			options.useProxy ? proxy : astIdentifier('Lobby'),
+			options.useProxy ? proxy : astIdentifier('Lobby'));
 		generated.push(chain);
 	});
 	
@@ -210,7 +211,7 @@ function parse (code) {
 		})
 	};
 
-	if (options.boilerplate) {
+	if (options.wrapWithFunction) {
 		generated.body[generated.body.length-1] = implicitReturnStatement(generated.body[generated.body.length-1]);
 		generated = wrapInFunction(generated);
 	}
@@ -241,7 +242,7 @@ function wrapInFunction (program) {
 						"type": "VariableDeclarator",
 						"id": {
 							"type": "Identifier",
-							"name": "obj"
+							"name": options.self
 						},
 						"init": {
 							"type": "LogicalExpression",
@@ -272,7 +273,7 @@ function implicitReturnStatement(expressionStatement) {
 				computed: false,
 				object: {
 					type: "Identifier",
-					name: "_io"
+					name: options.runtimeLib
 				},
 				property: {
 					type: "Identifier",
@@ -494,7 +495,7 @@ function astIdentifier (id) {//, loc) {
 	    "object": {
 	        "type": "Identifier",
 	    	// "loc": loc,
-	        "name": "_io"
+	        "name": options.runtimeLib
 	    },
 	    "property": {
 	    	// "loc": loc,

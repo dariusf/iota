@@ -10,15 +10,14 @@ var filename = args[0];
 
 function compileCode(input, options) {
 	options = options || {};
-
 	compile.setOptions(options);
-
 	var result = compile.compile(input);
-
 	return result.trim();
 }
 
-function parse(input) {
+function parse(input, options) {
+	options = options || {};
+	compile.setOptions(options);
 	return compile.parse(input);
 }
 
