@@ -14,7 +14,8 @@
 				var jsField = $('#js')[0];
 				var resultField = $('#result')[0];
 
-				var boilerplateCheckbox = $('#boilerplateCheckbox')[0];
+				var wrapWithFunctionCheckbox = $('#wrapWithFunctionCheckbox')[0];
+				var useProxyCheckbox = $('#useProxyCheckbox')[0];
 
 				window.console.log = function (message) {
 					resultField.value += message + '\n';
@@ -25,7 +26,7 @@
 					try {
 						astField.value = JSON.stringify(iota.parse(inputField.value), null, 4);
 
-						jsField.value = iota.compile(inputField.value, {boilerplate: boilerplateCheckbox.checked});
+						jsField.value = iota.compile(inputField.value, {wrapWithFunction: wrapWithFunctionCheckbox.checked, useProxy: useProxyCheckbox.checked});
 
 						try {
 							eval(iota.compile(inputField.value));
@@ -40,7 +41,8 @@
 				}
 
 				inputField.addEventListener("keyup", update);
-				boilerplateCheckbox.addEventListener("change", update);
+				wrapWithFunctionCheckbox.addEventListener("change", update);
+				useProxyCheckbox.addEventListener("change", update);
 
 				inputField.value = "fact := method(n, if (n == 0, 1, n * fact (n - 1)))\nwriteln(fact(5))";
 				update();
@@ -54,7 +56,8 @@
 		<p>Iota is a source-to-source compiler that translates <a href="http://iolanguage.org/">Io</a> code into JavaScript.</p>
 		<textarea id="input" rows="5" cols="30" placeholder="Your Io code here"></textarea>
 		<div id="options">
-			<input type="checkbox" id="boilerplateCheckbox">Boilerplate</input>
+			<input type="checkbox" id="wrapWithFunctionCheckbox">Wrap with function</input>
+			<input type="checkbox" id="useProxyCheckbox">Use proxy</input>
 		</div>
 		<textarea id="ast" readonly rows="15" cols="30" placeholder="Compiled JavaScript"></textarea>
 		<br/>
