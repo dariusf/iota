@@ -282,10 +282,15 @@ var _io = (function () {
 		set: function(obj) {
 			var actualProxy = IoProxy(Lobby, function(message) {
 				if (this.obj && this.obj[message]) {
-					var args = Array.prototype.slice.call(arguments, 1);
-					args = args.map(_io.unwrapIoValue);
-					return wrapJSValue(this.obj[message].apply(this.obj, args));
+					if (typeof this.obj[message] === 'function') {
+						var args = Array.prototype.slice.call(arguments, 1);
+						args = args.map(_io.unwrapIoValue);
+						return wrapJSValue(this.obj[message].apply(this.obj, args));
+					} else {
+						return wrapJSValue(this.obj[message]);
+					}
 				}
+				return false;
 			});
 			actualProxy.obj = obj;
 
