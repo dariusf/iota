@@ -1,6 +1,4 @@
-require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({"iota-compiler":[function(require,module,exports){
-module.exports=require('GVqErh');
-},{}],"GVqErh":[function(require,module,exports){
+require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({"GVqErh":[function(require,module,exports){
 (function (process,__dirname){
 
 var fs = require('fs');
@@ -14,15 +12,14 @@ var filename = args[0];
 
 function compileCode(input, options) {
 	options = options || {};
-
+	compile.setOptions(options);
 	var result = compile.compile(input);
-
-	result = (options.boilerplate ? boilerplateBefore(options.functionName) : "") + result + (options.boilerplate ? boilerplateAfter : "");
-
 	return result.trim();
 }
 
-function parse(input) {
+function parse(input, options) {
+	options = options || {};
+	compile.setOptions(options);
 	return compile.parse(input);
 }
 
@@ -37,44 +34,10 @@ module.exports = {
 	lib: lib
 };
 
-function boilerplateBefore (name) {
-	name = name || "execute";
-
-	return "function " + name + " () {\n" +
-	"	var obj = this || {};\n" +
-	"\n" +
-	"	var localsProxy = new _io.IoProxy(_io.Lobby, function (message) {\n" +
-	"		if (obj.hasOwnProperty(message)) {\n" +
-	"			this.stopPrototypePropagation();\n" +
-	"			var args = Array.prototype.slice.call(arguments, 1);\n" +
-	"			args = args.map(_io.unwrapIoValue);" +
-	"			return obj[message].apply(obj, args);\n" +
-	"		}\n" +
-	"	});\n" +
-	"\n" +
-	"	var playerProxy = new _io.IoProxy(_io.Lobby, function (message) {\n" +
-	"		if (message === 'chooseAction') {\n" +
-	"\n" +
-	"			this.stopPrototypePropagation();\n" +
-	"\n" +
-	"			var args = Array.prototype.slice.call(arguments, 1);\n" +
-	"			var slot = this.findSlot(message);\n" +
-	"			slot.activate.locals = localsProxy;\n" +
-	"\n" +
-	"			// unwrap arguments\n" +
-	"			args = args.map(_io.unwrapIoValue);" +
-	"\n" +
-	"			return slot.activate.apply(slot, [_io.IoRootObject].concat(args));\n" +
-	"		}\n" +
-	"	});\n" +
-	"\n" +
-	"	_io.Lobby.slots['player'] = playerProxy;\n\n";
-}
-
-var boilerplateAfter = "\n\n}";
-
-}).call(this,require("Zbi7gb"),"/")
-},{"./src/compile":22,"./src/lib":23,"Zbi7gb":5,"fs":3,"path":4}],3:[function(require,module,exports){
+}).call(this,require("FWaASH"),"/")
+},{"./src/compile":22,"./src/lib":23,"FWaASH":5,"fs":3,"path":4}],"iota-compiler":[function(require,module,exports){
+module.exports=require('GVqErh');
+},{}],3:[function(require,module,exports){
 
 },{}],4:[function(require,module,exports){
 (function (process){
@@ -303,8 +266,8 @@ var substr = 'ab'.substr(-1) === 'b'
     }
 ;
 
-}).call(this,require("Zbi7gb"))
-},{"Zbi7gb":5}],5:[function(require,module,exports){
+}).call(this,require("FWaASH"))
+},{"FWaASH":5}],5:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -1897,7 +1860,7 @@ process.chdir = function (dir) {
             break;
 
         default:
-            throw new Error('Unknown expression type: ' + JSON.stringify(expr));
+            throw new Error('Unknown expression type: ' + expr.type);
         }
 
         if (extra.comment) {
@@ -5771,8 +5734,8 @@ function amdefine(module, requireFn) {
 
 module.exports = amdefine;
 
-}).call(this,require("Zbi7gb"),"/node_modules\\escodegen\\node_modules\\source-map\\node_modules\\amdefine\\amdefine.js")
-},{"Zbi7gb":5,"path":4}],21:[function(require,module,exports){
+}).call(this,require("FWaASH"),"/node_modules/escodegen/node_modules/source-map/node_modules/amdefine/amdefine.js")
+},{"FWaASH":5,"path":4}],21:[function(require,module,exports){
 module.exports={
   "name": "escodegen",
   "description": "ECMAScript code generator",
@@ -5788,9 +5751,8 @@ module.exports={
   },
   "maintainers": [
     {
-      "name": "Yusuke Suzuki",
-      "email": "utatane.tea@gmail.com",
-      "url": "http://github.com/Constellation"
+      "name": "constellation",
+      "email": "utatane.tea@gmail.com"
     }
   ],
   "repository": {
@@ -5830,16 +5792,26 @@ module.exports={
     "unit-test": "gulp test",
     "lint": "gulp lint",
     "release": "node tools/release.js",
-    "build-min": "cjsify -ma path: tools/entry-point.js > escodegen.browser.min.js",
-    "build": "cjsify -a path: tools/entry-point.js > escodegen.browser.js"
+    "build-min": "./node_modules/.bin/cjsify -ma path: tools/entry-point.js > escodegen.browser.min.js",
+    "build": "./node_modules/.bin/cjsify -a path: tools/entry-point.js > escodegen.browser.js"
   },
-  "readme": "### Escodegen [![Build Status](https://secure.travis-ci.org/Constellation/escodegen.svg)](http://travis-ci.org/Constellation/escodegen) [![Build Status](https://drone.io/github.com/Constellation/escodegen/status.png)](https://drone.io/github.com/Constellation/escodegen/latest)\n\nEscodegen ([escodegen](http://github.com/Constellation/escodegen)) is\n[ECMAScript](http://www.ecma-international.org/publications/standards/Ecma-262.htm)\n(also popularly known as [JavaScript](http://en.wikipedia.org/wiki/JavaScript>JavaScript))\ncode generator from [Parser API](https://developer.mozilla.org/en/SpiderMonkey/Parser_API) AST.\nSee [online generator demo](http://constellation.github.com/escodegen/demo/index.html).\n\n\n### Install\n\nEscodegen can be used in a web browser:\n\n    <script src=\"escodegen.browser.js\"></script>\n\nescodegen.browser.js is found in tagged-revision. See Tags on GitHub.\n\nOr in a Node.js application via the package manager:\n\n    npm install escodegen\n\n### Usage\n\nA simple example: the program\n\n    escodegen.generate({\n        type: 'BinaryExpression',\n        operator: '+',\n        left: { type: 'Literal', value: 40 },\n        right: { type: 'Literal', value: 2 }\n    });\n\nproduces the string `'40 + 2'`\n\nSee the [API page](https://github.com/Constellation/escodegen/wiki/API) for\noptions. To run the tests, execute `npm test` in the root directory.\n\n### Building browser bundle / minified browser bundle\n\nAt first, executing `npm install` to install the all dev dependencies.\nAfter that,\n\n    npm run-script build\n\nwill generate `escodegen.browser.js`, it is used on the browser environment.\n\nAnd,\n\n    npm run-script build-min\n\nwill generate minified `escodegen.browser.min.js`.\n\n### License\n\n#### Escodegen\n\nCopyright (C) 2012 [Yusuke Suzuki](http://github.com/Constellation)\n (twitter: [@Constellation](http://twitter.com/Constellation)) and other contributors.\n\nRedistribution and use in source and binary forms, with or without\nmodification, are permitted provided that the following conditions are met:\n\n  * Redistributions of source code must retain the above copyright\n    notice, this list of conditions and the following disclaimer.\n\n  * Redistributions in binary form must reproduce the above copyright\n    notice, this list of conditions and the following disclaimer in the\n    documentation and/or other materials provided with the distribution.\n\nTHIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\"\nAND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE\nIMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE\nARE DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY\nDIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES\n(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;\nLOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND\nON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT\n(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF\nTHIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.\n\n#### source-map\n\nSourceNodeMocks has a limited interface of mozilla/source-map SourceNode implementations.\n\nCopyright (c) 2009-2011, Mozilla Foundation and contributors\nAll rights reserved.\n\nRedistribution and use in source and binary forms, with or without\nmodification, are permitted provided that the following conditions are met:\n\n* Redistributions of source code must retain the above copyright notice, this\n  list of conditions and the following disclaimer.\n\n* Redistributions in binary form must reproduce the above copyright notice,\n  this list of conditions and the following disclaimer in the documentation\n  and/or other materials provided with the distribution.\n\n* Neither the names of the Mozilla Foundation nor the names of project\n  contributors may be used to endorse or promote products derived from this\n  software without specific prior written permission.\n\nTHIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AND\nANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED\nWARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE\nDISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE\nFOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL\nDAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR\nSERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER\nCAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,\nOR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE\nOF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.\n",
-  "readmeFilename": "README.md",
   "bugs": {
     "url": "https://github.com/Constellation/escodegen/issues"
   },
   "_id": "escodegen@1.3.2",
-  "_from": "escodegen@~1.3.2"
+  "dist": {
+    "shasum": "bb0f434dbd594f2060639a79b4b06259dd5372de",
+    "tarball": "http://registry.npmjs.org/escodegen/-/escodegen-1.3.2.tgz"
+  },
+  "_from": "escodegen@~1.3.2",
+  "_npmVersion": "1.3.11",
+  "_npmUser": {
+    "name": "constellation",
+    "email": "utatane.tea@gmail.com"
+  },
+  "directories": {},
+  "_shasum": "bb0f434dbd594f2060639a79b4b06259dd5372de",
+  "_resolved": "https://registry.npmjs.org/escodegen/-/escodegen-1.3.2.tgz"
 }
 
 },{}],22:[function(require,module,exports){
@@ -5848,6 +5820,16 @@ var escodegen = require('escodegen');
 
 var parser = require('./parser');
 var pratt = require('./pratt');
+
+var options = {};
+
+function setOptions (userOptions) {
+	options.wrapWithFunction = userOptions.wrapWithFunction || false;
+	options.useProxy = userOptions.useProxy || false;
+	options.functionName = userOptions.functionName || 'io';
+	options.runtimeLib = userOptions.runtimeLib || '_io';
+	options.self = userOptions.self || 'self';
+}
 
 function applyMacros (ast) {
 
@@ -6012,11 +5994,30 @@ function parse (code) {
 
 	var generated = [];
 	ast.forEach(function (chain) {
-		chain = compile(chain, astIdentifier('Lobby'), astIdentifier('Lobby'));
+
+		var proxy = {
+			"type": "CallExpression",
+			"callee": {
+				"type": "MemberExpression",
+				"computed": false,
+				"object": astIdentifier("Proxy"),
+				"property": {
+					"type": "Identifier",
+					"name": "set"
+				}
+			},
+			"arguments": [{
+				"type": "Identifier",
+				"name": options.self
+			}]
+		};
+
+		chain = compile(chain,
+			options.useProxy ? proxy : astIdentifier('Lobby'),
+			options.useProxy ? proxy : astIdentifier('Lobby'));
 		generated.push(chain);
 	});
 	
-	// TODO make this a sequence statement?
 	generated = {
 		type: "Program",
 		body: generated.map(function (expr) {
@@ -6027,11 +6028,113 @@ function parse (code) {
 		})
 	};
 
+	if (options.wrapWithFunction) {
+		generated.body[generated.body.length-1] = implicitReturnStatement(generated.body[generated.body.length-1]);
+		generated = wrapInFunction(generated);
+	}
+
 	return generated;
 }
 
 function parseAndEmit (code) {
 	return escodegen.generate(parse(code));
+}
+
+function wrapInFunction (program) {
+
+	var bodyBlockStatement = {
+		"type": "BlockStatement",
+		"body": [{
+			"type": "VariableDeclaration",
+			"declarations": [{
+				"type": "VariableDeclarator",
+				"id": {
+					"type": "Identifier",
+					"name": options.self
+				},
+				"init": {
+					"type": "LogicalExpression",
+					"operator": "||",
+					"left": {
+						"type": "ThisExpression"
+					},
+					"right": {
+						"type": "ObjectExpression",
+						"properties": []
+					}
+				}
+			}],
+			"kind": "var"
+		}].concat(program.body)
+	};
+
+	var propertyAccess = options.functionName.indexOf('.') !== -1;
+
+	if (propertyAccess) {
+		return {
+	        "type": "ExpressionStatement",
+	        "expression": {
+	            "type": "AssignmentExpression",
+	            "operator": "=",
+	            "left": {
+	                "type": "Identifier",
+	                "name": options.functionName
+	            },
+	            "right": {
+	                "type": "FunctionExpression",
+	                "id": null,
+	                "params": [],
+	                "body": bodyBlockStatement
+	            }
+	        }
+	    };
+	}
+	else {
+		return {
+			type: "Program",
+			body: [{
+				"type": "FunctionDeclaration",
+				"id": {
+					"type": "Identifier",
+					"name": options.functionName
+				},
+				"params": [],
+				"body": bodyBlockStatement
+			}]
+		};
+	}
+}
+
+function implicitReturnStatement(expressionStatement) {
+
+	function unwrap(expr) {
+		return {
+			type: "CallExpression",
+			callee: {
+				type: "MemberExpression",
+				computed: false,
+				object: {
+					type: "Identifier",
+					name: options.runtimeLib
+				},
+				property: {
+					type: "Identifier",
+					name: "unwrapIoValue"
+				}
+			},
+			arguments: [expr]
+		};
+	}
+
+	// var program = ast;
+	// var wrapperFunction = program.body[0];
+	// var blockStatement = wrapperFunction.body;
+	// var lastExpressionStatement = blockStatement.body[blockStatement.body.length - 1];
+	// blockStatement.body[blockStatement.body.length - 1] = ;
+	return {
+		type: "ReturnStatement",
+		argument: unwrap(expressionStatement.expression)
+	};
 }
 
 function getEnclosingRange (exprlist) {
@@ -6234,7 +6337,7 @@ function astIdentifier (id) {//, loc) {
 	    "object": {
 	        "type": "Identifier",
 	    	// "loc": loc,
-	        "name": "_io"
+	        "name": options.runtimeLib
 	    },
 	    "property": {
 	    	// "loc": loc,
@@ -6246,7 +6349,8 @@ function astIdentifier (id) {//, loc) {
 
 module.exports = {
 	parse: parse,
-	compile: parseAndEmit
+	compile: parseAndEmit,
+	setOptions: setOptions,
 };
 
 },{"./parser":24,"./pratt":25,"escodegen":6}],23:[function(require,module,exports){
@@ -6254,19 +6358,34 @@ module.exports = {
 var _io = (function () {
 
 	function IoObject (slots, proto) {
-		this.slots = slots || {};
-		this.proto = proto;
+		var self = {};
+		self.slots = slots || {};
+		self.proto = proto;
+
+		self.identity = Math.random() + "";
+
+		self.findSlot = IoObject.findSlot;
+		self.send = IoObject.send;
+		self.equals = IoObject.equals;
+
+		return self;
 	}
-	IoObject.prototype.findSlot = function (slot) {
-		if (this === IoRootObject || this.slots.hasOwnProperty(slot)) {
+
+	IoObject.equals = function (other) {
+		return this.identity === other.identity;
+	};
+
+	IoObject.findSlot = function (slot) {
+		if (this.isRootObject || this.slots.hasOwnProperty(slot)) {
 			return this.slots[slot];
 		} else if (this.proto) {
 			return this.proto.findSlot(slot);
 		} else {
 			return null;
 		}
-	}
-	IoObject.prototype.send = function (message) {
+	};
+
+	IoObject.send = function (message) {
 		var args = Array.prototype.slice.call(arguments, 1);
 		var slot = this.findSlot(message);
 
@@ -6281,20 +6400,21 @@ var _io = (function () {
 				}
 			}
 		} else {
-			console.log("unrecognized message '" + message + "'");
+			throw new Error("Object send: unrecognized message '" + message + "'");
 		}
 	};
 
-	var Lobby = new IoObject();
+	var Lobby = IoObject({type: 'Lobby'});
+	Lobby.isLobby = true;
 
-	var IoRootObject = new IoObject({
-		type: "Object",
+	var IoRootObject = IoObject({
+		type: 'Object',
 		clone: function (name, instance) {
 			var slots = {};
 			if (!instance) {
 				slots.type = name;
 			}
-			return new IoObject(slots, this);
+			return IoObject(slots, this);
 		},
 		slotNames: function () {
 			return Object.keys(this.slots);
@@ -6303,30 +6423,31 @@ var _io = (function () {
 			// TODO this method only works for user-defined methods for now,
 			// which are IoObjects and can respond to messages.
 			// At the moment all primitive methods are raw functions and won't work.
-			slotName = slotName.slots.value;
+			slotName = unwrapIoValue(slotName);
 			var slot = this.findSlot(slotName);
 			return slot;
 		},
 		setSlot: function (slot, value) {
-			slot = slot.slots.value;
+			slot = unwrapIoValue(slot);
 			this.slots[slot] = value;
-			return null; // IoNil
+			return IoNil;
 		},
 		updateSlot: function (slot, value) {
 			if (this.slots[slot]) {
 				this.slots[slot] = value;
 			} else {
-				throw "cannot update slot '" + slot + "' that doesn't exist";
+				throw new Error("Object updateSlot: slot '" + slot + "' doesn't exist; cannot update");
 			}
 		},
 		toIoString: function () {
-			return IoStringWrapper("#" + this.type + " " + this.send("slotNames"));
+			return IoStringWrapper("#" + getTypeOf(this) + " " + this.send("slotNames"));
 		},
 		proto: function () {
 			return this.proto;
 		},
 		writeln: function (thing) {
-			console.log(thing.send('toIoString').slots.value);
+			console.log(unwrapIoValue(thing.send('toIoString')));
+			return IoNil;
 		},
 		method: function () {
 			var args = Array.prototype.slice.call(arguments);
@@ -6335,15 +6456,16 @@ var _io = (function () {
 
 			var method = IoMethod.send('clone');
 			method.body = thunk;
+			method.parameters = parameters;
 
 			method.activate = function () {
 				var self = arguments[0];
 				var args = Array.prototype.slice.call(arguments, 1);
 
-				var locals = method.activate.locals || new IoObject({}, self);
+				var locals = IoObject({}, self);
 				for (var i=0; i<args.length; i++) {
-					locals.send('setSlot', IoStringWrapper(parameters[i]), args[i]);
-					if (i > parameters) break; // over-application
+					locals.send('setSlot', IoStringWrapper(this.parameters[i]), args[i]);
+					if (i > this.parameters) break; // over-application
 				}
 				locals.send('setSlot', IoStringWrapper('self'), self);
 
@@ -6353,7 +6475,7 @@ var _io = (function () {
 			return method;
 		},
 		if: function (condition, conseq, alt) {
-			if (condition === IoTrue) {
+			if (condition.equals(IoTrue)) {
 				return conseq.eval();
 			}
 			else {
@@ -6361,62 +6483,77 @@ var _io = (function () {
 			}
 		},
 		"==": function (other) {
-			return IoBooleanWrapper(this === other);
+			return IoBooleanWrapper(this.equals(other));
 		}
 	}, Lobby);
+	IoRootObject.isRootObject = true;
 
-	var IoNumber = new IoObject({
+	var IoNil = IoObject({
+		type: 'Nil',
+		toIoString: function () {
+			return IoStringWrapper("nil");
+		}
+	}, IoRootObject);
+
+	var IoNumber = IoObject({
+		type: 'Number',
 		"+": function (other) {
-			return IoNumberWrapper(this.slots.value + other.slots.value);
+			return IoNumberWrapper(unwrapIoValue(this) + unwrapIoValue(other));
 		},
 		"*": function (other) {
-			return IoNumberWrapper(this.slots.value * other.slots.value);
+			return IoNumberWrapper(unwrapIoValue(this) * unwrapIoValue(other));
 		},
 		"-": function (other) {
-			return IoNumberWrapper(this.slots.value - other.slots.value);
+			return IoNumberWrapper(unwrapIoValue(this) - unwrapIoValue(other));
 		},
 		"==": function (other) {
-			return IoBooleanWrapper(this.slots.value === other.slots.value);
+			return IoBooleanWrapper(unwrapIoValue(this) === unwrapIoValue(other));
 		},
 		toIoString: function () {
-			return IoStringWrapper(this.slots.value);
+			return IoStringWrapper(unwrapIoValue(this));
 		}
-	}, IoObject);
+	}, IoRootObject);
+
 	function IoNumberWrapper (value) {
-		return new IoObject({value: value}, IoNumber);
+		return IoObject({value: value}, IoNumber);
 	}
 
-	var IoString = new IoObject({
+	var IoString = IoObject({
+		type: 'String',
 		charAt: function (n) {
-			n = n.slots.value;
-			return IoStringWrapper(this.slots.value.charAt(n));
+			n = unwrapIoValue(n);
+			return IoStringWrapper(unwrapIoValue(this).charAt(n));
 		},
 		toIoString: function () {
 			return this;
 		}
-	}, IoObject);
+	}, IoRootObject);
+	
 	function IoStringWrapper (value) {
-		return new IoObject({value: value}, IoString);
+		return IoObject({value: value}, IoString);
 	}
 
-	var IoTrue = new IoObject({
+	var IoTrue = IoObject({
+		type: 'Boolean',
 		and: function (other) {
-			if (other === this) return this;
+			if (other.equals(this)) return this;
 			else return IoFalse;
 		},
 		toIoString: function () {
 			return IoStringWrapper("true");
 		}
-	}, IoObject);
+	}, IoRootObject);
 
-	var IoFalse = new IoObject({
+	var IoFalse = IoObject({
+		type: 'Boolean',
 		and: function (other) {
 			return IoFalse;
 		},
 		toIoString: function () {
 			return IoStringWrapper("false");
 		}
-	}, IoObject);
+	}, IoRootObject);
+
 	function IoBooleanWrapper (bool) {
 		return bool ? IoTrue : IoFalse;
 	}
@@ -6425,8 +6562,8 @@ var _io = (function () {
 		return {f:f, eval: function() {return f.apply(null, Array.prototype.slice.call(arguments));}};
 	}
 
-	var IoMethod = new IoObject({
-		type: "Block",
+	var IoMethod = IoObject({
+		type: 'Block',
 		activate: null // defined later
 	}, IoRootObject);
 
@@ -6435,43 +6572,143 @@ var _io = (function () {
 	// For internal use only.
 
 	function IoProxy (forObject, action) {
-		var p = new IoObject({type: "Proxy"}, forObject);
-		var stop = false;
-
+		var p = IoObject({type: 'Proxy'}, forObject);
+		
 		p.send = function (message) {
 			var result = action.apply(this, arguments);
-			if (stop) {
+			if (result) {
 				return result;
 			} else {
-				return IoObject.prototype.send.apply(p, arguments);
+				return IoObject.send.apply(p, arguments);
 			}
-		};
-		p.stopPrototypePropagation = function () {
-			stop = true;
 		};
 		return p;
 	}
 
+	Lobby.slots['nil'] = IoNil;
 	Lobby.slots['true'] = IoTrue;
 	Lobby.slots['false'] = IoFalse;
 	Lobby.slots['Object'] = IoRootObject;
 	Lobby.slots['Lobby'] = Lobby;
 	Lobby.proto = IoRootObject;
 
+	function isJSPrimitive (value) {
+		var type = typeof value;
+		switch (type) {
+		case 'number':
+		case 'string':
+		case 'boolean':
+		case 'function':
+			return true;
+		case 'object':
+			// Is there a less duck-typed way to do this?
+			return value.slots === undefined;
+		default:
+			throw new Error('isJSPrimitive: invalid value ' + value + ' of type ' + type);
+		}
+	}
+
+	function getTypeOf (ioValue) {
+		if (!ioValue) {
+			throw new Error('getTypeOf: attempt to get type of invalid Io value ' + ioValue);
+		}
+
+		var type = ioValue.send('type');
+
+		if (!type) {
+			throw new Error('getTypeOf: invalid type ' + ioValue);
+		}
+
+		return type;
+	}
+
 	function unwrapIoValue (ioValue) {
-        if (ioValue.type === 'Block') {
-        	// IoMethod
-            return function () {
-                return ioValue.activate.apply(ioValue, arguments);
-            };
-        } else {
-        	// IoNumber, IoString, IoBoolean
-            return ioValue.slots.value;
-        }
-    }
+
+		var type = getTypeOf(ioValue);
+
+		switch (type) {
+		case 'Nil':
+			return undefined;
+		case 'Number':
+		case 'String':
+			return ioValue.slots.value;
+		case 'Boolean':
+			return ioValue.equals(IoTrue);
+		case 'Block':
+			throw new Error('unwrapIoValue: unwrapping Io methods/blocks is not supported');
+		default:
+			var obj = {};
+			Object.keys(ioValue.slots).forEach(function (slotKey) {
+
+				var value = ioValue.slots[slotKey];
+				
+				// This has to be done because Io object slots might
+				// contain JS primitives (the type of an IoString can't
+				// be an IoString, for example - infinite loop).
+
+				// For now it's assumed that if an Io object slot contains
+				// a primitive value (and if it's not a bug), the value is a
+				// library primitive and shouldn't be copied out.
+				// This rule might not always hold.
+
+				if (!isJSPrimitive(value)) {
+					obj[slotKey] = unwrapIoValue(value);
+				}
+			});
+			return obj;
+		}
+	}
+
+	function wrapJSValue (jsValue) {
+
+		if (jsValue === undefined || jsValue === null) {
+			return IoNil;
+		}
+
+		var type = typeof jsValue;
+		switch (type) {
+		case 'number':
+			return IoNumberWrapper(jsValue);
+		case 'string':
+			return IoStringWrapper(jsValue);
+		case 'boolean':
+			return IoBooleanWrapper(jsValue);
+		case 'object':
+			var obj = IoObject({type: 'JSObject'}, IoRootObject);
+			Object.keys(jsValue).forEach(function (key) {
+				obj.slots[key] = wrapJSValue(jsValue[key]);
+			});
+			return obj;
+		case 'function':
+			throw new Error('wrapJSValue: wrapping functions is not supported');
+		default:
+			throw new Error('wrapJSValue: invalid object type ' + type);
+		}
+	}
+
+	var Proxy = {
+		set: function(obj) {
+			var actualProxy = IoProxy(Lobby, function(message) {
+				if (this.obj && this.obj[message]) {
+					if (typeof this.obj[message] === 'function') {
+						var args = Array.prototype.slice.call(arguments, 1);
+						args = args.map(_io.unwrapIoValue);
+						return wrapJSValue(this.obj[message].apply(this.obj, args));
+					} else {
+						return wrapJSValue(this.obj[message]);
+					}
+				}
+				return false;
+			});
+			actualProxy.obj = obj;
+
+			return actualProxy;
+		}
+	};
 	
 	return {
 		IoObject: IoObject,
+		IoNil: IoNil,
 		IoNumber: IoNumber,
 		IoNumberWrapper: IoNumberWrapper,
 		IoString: IoString,
@@ -6484,7 +6721,10 @@ var _io = (function () {
 		IoProxy: IoProxy,
 		Lobby: Lobby,
 		IoRootObject: IoRootObject,
+		getTypeOf: getTypeOf,
 		unwrapIoValue: unwrapIoValue,
+		wrapJSValue: wrapJSValue,
+		Proxy: Proxy,
 	}
 })();
 
@@ -6570,27 +6810,29 @@ if (typeof module !== 'undefined' && module.exports) {
 var parser = (function(){
 var parser = {trace: function trace() { },
 yy: {},
-symbols_: {"error":2,"program":3,"zeroOrMoreTerminators":4,"exprs":5,"EOF":6,"oneOrMoreTerminators":7,"expr":8,"message":9,"(":10,")":11,"symbol":12,"arguments":13,"NEWLINE":14,";":15,"argumentList":16,",":17,"IDENTIFIER":18,"NUMBER":19,"string":20,"EmptyString":21,"QuotedString":22,"QuotedStringEscape":23,"quotedstring":24,"$accept":0,"$end":1},
-terminals_: {2:"error",6:"EOF",10:"(",11:")",14:"NEWLINE",15:";",17:",",18:"IDENTIFIER",19:"NUMBER",21:"EmptyString",22:"QuotedString",23:"QuotedStringEscape",24:"quotedstring"},
-productions_: [0,[3,4],[5,3],[5,1],[8,2],[8,1],[8,3],[9,1],[9,2],[7,2],[7,1],[7,2],[7,1],[4,1],[4,0],[13,2],[13,3],[16,1],[16,3],[12,1],[12,1],[12,1],[20,1],[20,1],[20,1],[20,2],[20,2]],
+symbols_: {"error":2,"program":3,"looselyTerminatedExpr":4,"EOF":5,"zeroOrMoreTerminators":6,"exprs":7,"oneOrMoreTerminators":8,"expr":9,"message":10,"(":11,")":12,"symbol":13,"arguments":14,"NEWLINE":15,";":16,"argumentList":17,",":18,"IDENTIFIER":19,"NUMBER":20,"string":21,"EmptyString":22,"QuotedString":23,"QuotedStringEscape":24,"quotedstring":25,"$accept":0,"$end":1},
+terminals_: {2:"error",5:"EOF",11:"(",12:")",15:"NEWLINE",16:";",18:",",19:"IDENTIFIER",20:"NUMBER",22:"EmptyString",23:"QuotedString",24:"QuotedStringEscape",25:"quotedstring"},
+productions_: [0,[3,2],[4,3],[7,3],[7,1],[9,2],[9,1],[9,3],[10,1],[10,2],[8,2],[8,1],[8,2],[8,1],[6,1],[6,0],[14,2],[14,3],[17,1],[17,3],[13,1],[13,1],[13,1],[21,1],[21,1],[21,1],[21,2],[21,2]],
 performAction: function anonymous(yytext, yyleng, yylineno, yy, yystate /* action[1] */, $$ /* vstack */, _$ /* lstack */) {
 /* this == yyval */
 
 var $0 = $$.length - 1;
 switch (yystate) {
-case 1:return $$[$0-2];
+case 1:return $$[$0-1];
 break;
-case 2:$$[$0-2].push($$[$0]); this.$ = $$[$0-2];
+case 2:this.$ = $$[$0-1];
 break;
-case 3:this.$ = [$$[$0]];
+case 3:$$[$0-2].push($$[$0]); this.$ = $$[$0-2];
 break;
-case 4:$$[$0-1].value.push({type: 'message', value: $$[$0]}); this.$ = $$[$0-1];
+case 4:this.$ = [$$[$0]];
 break;
-case 5:this.$ = {type: 'chain', value: [{type: 'message', value: $$[$0]}]};
+case 5:$$[$0-1].value.push({type: 'message', value: $$[$0]}); this.$ = $$[$0-1];
 break;
-case 6:this.$ = $$[$0-1];
+case 6:this.$ = {type: 'chain', value: [{type: 'message', value: $$[$0]}]};
 break;
-case 7:
+case 7:this.$ = $$[$0-1];
+break;
+case 8:
             this.$ = {
                 type: 'symbol',
                 value: $$[$0],
@@ -6599,7 +6841,7 @@ case 7:
             };
         
 break;
-case 8:
+case 9:
             this.$ = {
                 type: 'symbol',
                 value: $$[$0-1],
@@ -6608,25 +6850,25 @@ case 8:
             };
         
 break;
-case 15:this.$ = [];
+case 16:this.$ = [];
 break;
-case 16:this.$ = $$[$0-1];
+case 17:this.$ = $$[$0-1];
 break;
-case 17:this.$ = [$$[$0]];
+case 18:this.$ = [$$[$0]];
 break;
-case 18:$$[$0-2].push($$[$0]); this.$ = $$[$0-2];
+case 19:$$[$0-2].push($$[$0]); this.$ = $$[$0-2]; 
 break;
-case 19:this.$ = {type: 'identifier', value: $$[$0]};
+case 20:this.$ = {type: 'identifier', value: $$[$0]};
 break;
-case 20:this.$ = {type: 'number', value: $$[$0]};
+case 21:this.$ = {type: 'number', value: $$[$0]};
 break;
-case 21:this.$ = {type: 'string', value: $$[$0]};
+case 22:this.$ = {type: 'string', value: $$[$0]};
 break;
-case 22:
+case 23:
         this.$ = '';
     
 break;
-case 24:
+case 25:
         switch (yytext)
         {
             case 'b':       this.$ = '\b'; break;
@@ -6642,7 +6884,7 @@ case 24:
         }
     
 break;
-case 25:
+case 26:
         switch ($$[$0-1])
         {
             case 'b':       this.$ = '\b'; break;
@@ -6659,14 +6901,14 @@ case 25:
         this.$ += $$[$0];
     
 break;
-case 26:
+case 27:
         this.$ = $$[$0-1] + $$[$0];
     
 break;
 }
 },
-table: [{3:1,4:2,7:3,10:[2,14],14:[1,4],15:[1,5],18:[2,14],19:[2,14],21:[2,14],22:[2,14],23:[2,14]},{1:[3]},{5:6,8:7,9:8,10:[1,9],12:10,18:[1,11],19:[1,12],20:13,21:[1,14],22:[1,15],23:[1,16]},{10:[2,13],18:[2,13],19:[2,13],21:[2,13],22:[2,13],23:[2,13]},{6:[2,10],7:17,10:[2,10],14:[1,4],15:[1,5],18:[2,10],19:[2,10],21:[2,10],22:[2,10],23:[2,10]},{6:[2,12],7:18,10:[2,12],14:[1,4],15:[1,5],18:[2,12],19:[2,12],21:[2,12],22:[2,12],23:[2,12]},{4:19,6:[2,14],7:20,14:[1,4],15:[1,5]},{6:[2,3],9:21,11:[2,3],12:10,14:[2,3],15:[2,3],17:[2,3],18:[1,11],19:[1,12],20:13,21:[1,14],22:[1,15],23:[1,16]},{6:[2,5],11:[2,5],14:[2,5],15:[2,5],17:[2,5],18:[2,5],19:[2,5],21:[2,5],22:[2,5],23:[2,5]},{8:22,9:8,10:[1,9],12:10,18:[1,11],19:[1,12],20:13,21:[1,14],22:[1,15],23:[1,16]},{6:[2,7],10:[1,24],11:[2,7],13:23,14:[2,7],15:[2,7],17:[2,7],18:[2,7],19:[2,7],21:[2,7],22:[2,7],23:[2,7]},{6:[2,19],10:[2,19],11:[2,19],14:[2,19],15:[2,19],17:[2,19],18:[2,19],19:[2,19],21:[2,19],22:[2,19],23:[2,19]},{6:[2,20],10:[2,20],11:[2,20],14:[2,20],15:[2,20],17:[2,20],18:[2,20],19:[2,20],21:[2,20],22:[2,20],23:[2,20]},{6:[2,21],10:[2,21],11:[2,21],14:[2,21],15:[2,21],17:[2,21],18:[2,21],19:[2,21],21:[2,21],22:[2,21],23:[2,21]},{6:[2,22],10:[2,22],11:[2,22],14:[2,22],15:[2,22],17:[2,22],18:[2,22],19:[2,22],21:[2,22],22:[2,22],23:[2,22]},{6:[2,23],10:[2,23],11:[2,23],14:[2,23],15:[2,23],17:[2,23],18:[2,23],19:[2,23],21:[2,23],22:[2,23],23:[2,23],24:[1,25]},{6:[2,24],10:[2,24],11:[2,24],14:[2,24],15:[2,24],17:[2,24],18:[2,24],19:[2,24],21:[2,24],22:[2,24],23:[2,24],24:[1,26]},{6:[2,9],10:[2,9],18:[2,9],19:[2,9],21:[2,9],22:[2,9],23:[2,9]},{6:[2,11],10:[2,11],18:[2,11],19:[2,11],21:[2,11],22:[2,11],23:[2,11]},{6:[1,27]},{6:[2,13],8:28,9:8,10:[1,9],12:10,18:[1,11],19:[1,12],20:13,21:[1,14],22:[1,15],23:[1,16]},{6:[2,4],11:[2,4],14:[2,4],15:[2,4],17:[2,4],18:[2,4],19:[2,4],21:[2,4],22:[2,4],23:[2,4]},{9:21,11:[1,29],12:10,18:[1,11],19:[1,12],20:13,21:[1,14],22:[1,15],23:[1,16]},{6:[2,8],11:[2,8],14:[2,8],15:[2,8],17:[2,8],18:[2,8],19:[2,8],21:[2,8],22:[2,8],23:[2,8]},{5:32,8:7,9:8,10:[1,9],11:[1,30],12:10,16:31,18:[1,11],19:[1,12],20:13,21:[1,14],22:[1,15],23:[1,16]},{6:[2,26],10:[2,26],11:[2,26],14:[2,26],15:[2,26],17:[2,26],18:[2,26],19:[2,26],21:[2,26],22:[2,26],23:[2,26]},{6:[2,25],10:[2,25],11:[2,25],14:[2,25],15:[2,25],17:[2,25],18:[2,25],19:[2,25],21:[2,25],22:[2,25],23:[2,25]},{1:[2,1]},{6:[2,2],9:21,11:[2,2],12:10,14:[2,2],15:[2,2],17:[2,2],18:[1,11],19:[1,12],20:13,21:[1,14],22:[1,15],23:[1,16]},{6:[2,6],11:[2,6],14:[2,6],15:[2,6],17:[2,6],18:[2,6],19:[2,6],21:[2,6],22:[2,6],23:[2,6]},{6:[2,15],11:[2,15],14:[2,15],15:[2,15],17:[2,15],18:[2,15],19:[2,15],21:[2,15],22:[2,15],23:[2,15]},{11:[1,33],17:[1,34]},{7:35,11:[2,17],14:[1,4],15:[1,5],17:[2,17]},{6:[2,16],11:[2,16],14:[2,16],15:[2,16],17:[2,16],18:[2,16],19:[2,16],21:[2,16],22:[2,16],23:[2,16]},{5:36,8:7,9:8,10:[1,9],12:10,18:[1,11],19:[1,12],20:13,21:[1,14],22:[1,15],23:[1,16]},{8:28,9:8,10:[1,9],12:10,18:[1,11],19:[1,12],20:13,21:[1,14],22:[1,15],23:[1,16]},{7:35,11:[2,18],14:[1,4],15:[1,5],17:[2,18]}],
-defaultActions: {27:[2,1]},
+table: [{3:1,4:2,6:3,8:4,11:[2,15],15:[1,5],16:[1,6],19:[2,15],20:[2,15],22:[2,15],23:[2,15],24:[2,15]},{1:[3]},{5:[1,7]},{7:8,9:9,10:10,11:[1,11],13:12,19:[1,13],20:[1,14],21:15,22:[1,16],23:[1,17],24:[1,18]},{11:[2,14],19:[2,14],20:[2,14],22:[2,14],23:[2,14],24:[2,14]},{5:[2,11],8:19,11:[2,11],12:[2,11],15:[1,5],16:[1,6],18:[2,11],19:[2,11],20:[2,11],22:[2,11],23:[2,11],24:[2,11]},{5:[2,13],8:20,11:[2,13],12:[2,13],15:[1,5],16:[1,6],18:[2,13],19:[2,13],20:[2,13],22:[2,13],23:[2,13],24:[2,13]},{1:[2,1]},{5:[2,15],6:21,8:22,12:[2,15],15:[1,5],16:[1,6],18:[2,15]},{5:[2,4],10:23,12:[2,4],13:12,15:[2,4],16:[2,4],18:[2,4],19:[1,13],20:[1,14],21:15,22:[1,16],23:[1,17],24:[1,18]},{5:[2,6],12:[2,6],15:[2,6],16:[2,6],18:[2,6],19:[2,6],20:[2,6],22:[2,6],23:[2,6],24:[2,6]},{9:24,10:10,11:[1,11],13:12,19:[1,13],20:[1,14],21:15,22:[1,16],23:[1,17],24:[1,18]},{5:[2,8],11:[1,26],12:[2,8],14:25,15:[2,8],16:[2,8],18:[2,8],19:[2,8],20:[2,8],22:[2,8],23:[2,8],24:[2,8]},{5:[2,20],11:[2,20],12:[2,20],15:[2,20],16:[2,20],18:[2,20],19:[2,20],20:[2,20],22:[2,20],23:[2,20],24:[2,20]},{5:[2,21],11:[2,21],12:[2,21],15:[2,21],16:[2,21],18:[2,21],19:[2,21],20:[2,21],22:[2,21],23:[2,21],24:[2,21]},{5:[2,22],11:[2,22],12:[2,22],15:[2,22],16:[2,22],18:[2,22],19:[2,22],20:[2,22],22:[2,22],23:[2,22],24:[2,22]},{5:[2,23],11:[2,23],12:[2,23],15:[2,23],16:[2,23],18:[2,23],19:[2,23],20:[2,23],22:[2,23],23:[2,23],24:[2,23]},{5:[2,24],11:[2,24],12:[2,24],15:[2,24],16:[2,24],18:[2,24],19:[2,24],20:[2,24],22:[2,24],23:[2,24],24:[2,24],25:[1,27]},{5:[2,25],11:[2,25],12:[2,25],15:[2,25],16:[2,25],18:[2,25],19:[2,25],20:[2,25],22:[2,25],23:[2,25],24:[2,25],25:[1,28]},{5:[2,10],11:[2,10],12:[2,10],18:[2,10],19:[2,10],20:[2,10],22:[2,10],23:[2,10],24:[2,10]},{5:[2,12],11:[2,12],12:[2,12],18:[2,12],19:[2,12],20:[2,12],22:[2,12],23:[2,12],24:[2,12]},{5:[2,2],12:[2,2],18:[2,2]},{5:[2,14],9:29,10:10,11:[1,11],12:[2,14],13:12,18:[2,14],19:[1,13],20:[1,14],21:15,22:[1,16],23:[1,17],24:[1,18]},{5:[2,5],12:[2,5],15:[2,5],16:[2,5],18:[2,5],19:[2,5],20:[2,5],22:[2,5],23:[2,5],24:[2,5]},{10:23,12:[1,30],13:12,19:[1,13],20:[1,14],21:15,22:[1,16],23:[1,17],24:[1,18]},{5:[2,9],12:[2,9],15:[2,9],16:[2,9],18:[2,9],19:[2,9],20:[2,9],22:[2,9],23:[2,9],24:[2,9]},{4:33,6:3,8:4,11:[2,15],12:[1,31],15:[1,5],16:[1,6],17:32,19:[2,15],20:[2,15],22:[2,15],23:[2,15],24:[2,15]},{5:[2,27],11:[2,27],12:[2,27],15:[2,27],16:[2,27],18:[2,27],19:[2,27],20:[2,27],22:[2,27],23:[2,27],24:[2,27]},{5:[2,26],11:[2,26],12:[2,26],15:[2,26],16:[2,26],18:[2,26],19:[2,26],20:[2,26],22:[2,26],23:[2,26],24:[2,26]},{5:[2,3],10:23,12:[2,3],13:12,15:[2,3],16:[2,3],18:[2,3],19:[1,13],20:[1,14],21:15,22:[1,16],23:[1,17],24:[1,18]},{5:[2,7],12:[2,7],15:[2,7],16:[2,7],18:[2,7],19:[2,7],20:[2,7],22:[2,7],23:[2,7],24:[2,7]},{5:[2,16],12:[2,16],15:[2,16],16:[2,16],18:[2,16],19:[2,16],20:[2,16],22:[2,16],23:[2,16],24:[2,16]},{12:[1,34],18:[1,35]},{12:[2,18],18:[2,18]},{5:[2,17],12:[2,17],15:[2,17],16:[2,17],18:[2,17],19:[2,17],20:[2,17],22:[2,17],23:[2,17],24:[2,17]},{4:36,6:3,8:4,11:[2,15],15:[1,5],16:[1,6],19:[2,15],20:[2,15],22:[2,15],23:[2,15],24:[2,15]},{12:[2,19],18:[2,19]}],
+defaultActions: {7:[2,1]},
 parseError: function parseError(str, hash) {
     if (hash.recoverable) {
         this.trace(str);
@@ -7134,21 +7376,21 @@ var YYSTATE=YY_START;
 switch($avoiding_name_collisions) {
 case 0:/* whitespace */
 break;
-case 1:return 19
+case 1:return 20
 break;
-case 2:return 18
+case 2:return 19
 break;
-case 3:return 10
+case 3:return 11
 break;
-case 4:return 11
+case 4:return 12
 break;
-case 5:return 14
+case 5:return 15
 break;
-case 6:return 15
+case 6:return 16
 break;
-case 7:return 17
+case 7:return 18
 break;
-case 8:return 21
+case 8:return 22
 break;
 case 9:this.begin('DoubleQuotedString');
 break;
@@ -7156,11 +7398,11 @@ case 10:this.begin('QuotedStringEscape');
 break;
 case 11:this.popState();
 break;
-case 12: this.popState(); return 23; 
+case 12: this.popState(); return 24; 
 break;
-case 13:return 22;
+case 13:return 23;
 break;
-case 14:return 6
+case 14:return 5
 break;
 case 15:return 'INVALID'
 break;
@@ -7196,8 +7438,8 @@ if (typeof module !== 'undefined' && require.main === module) {
   exports.main(process.argv.slice(1));
 }
 }
-}).call(this,require("Zbi7gb"))
-},{"Zbi7gb":5,"fs":3,"path":4}],25:[function(require,module,exports){
+}).call(this,require("FWaASH"))
+},{"FWaASH":5,"fs":3,"path":4}],25:[function(require,module,exports){
 
 // AST nodes
 

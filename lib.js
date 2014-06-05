@@ -2,19 +2,34 @@
 var _io = (function () {
 
 	function IoObject (slots, proto) {
-		this.slots = slots || {};
-		this.proto = proto;
+		var self = {};
+		self.slots = slots || {};
+		self.proto = proto;
+
+		self.identity = Math.random() + "";
+
+		self.findSlot = IoObject.findSlot;
+		self.send = IoObject.send;
+		self.equals = IoObject.equals;
+
+		return self;
 	}
-	IoObject.prototype.findSlot = function (slot) {
-		if (this === IoRootObject || this.slots.hasOwnProperty(slot)) {
+
+	IoObject.equals = function (other) {
+		return this.identity === other.identity;
+	};
+
+	IoObject.findSlot = function (slot) {
+		if (this.isRootObject || this.slots.hasOwnProperty(slot)) {
 			return this.slots[slot];
 		} else if (this.proto) {
 			return this.proto.findSlot(slot);
 		} else {
 			return null;
 		}
-	}
-	IoObject.prototype.send = function (message) {
+	};
+
+	IoObject.send = function (message) {
 		var args = Array.prototype.slice.call(arguments, 1);
 		var slot = this.findSlot(message);
 
@@ -29,20 +44,21 @@ var _io = (function () {
 				}
 			}
 		} else {
-			console.log("unrecognized message '" + message + "'");
+			throw new Error("Object send: unrecognized message '" + message + "'");
 		}
 	};
 
-	var Lobby = new IoObject();
+	var Lobby = IoObject({type: 'Lobby'});
+	Lobby.isLobby = true;
 
-	var IoRootObject = new IoObject({
-		type: "Object",
+	var IoRootObject = IoObject({
+		type: 'Object',
 		clone: function (name, instance) {
 			var slots = {};
 			if (!instance) {
 				slots.type = name;
 			}
-			return new IoObject(slots, this);
+			return IoObject(slots, this);
 		},
 		slotNames: function () {
 			return Object.keys(this.slots);
@@ -51,30 +67,31 @@ var _io = (function () {
 			// TODO this method only works for user-defined methods for now,
 			// which are IoObjects and can respond to messages.
 			// At the moment all primitive methods are raw functions and won't work.
-			slotName = slotName.slots.value;
+			slotName = unwrapIoValue(slotName);
 			var slot = this.findSlot(slotName);
 			return slot;
 		},
 		setSlot: function (slot, value) {
-			slot = slot.slots.value;
+			slot = unwrapIoValue(slot);
 			this.slots[slot] = value;
-			return null; // IoNil
+			return IoNil;
 		},
 		updateSlot: function (slot, value) {
 			if (this.slots[slot]) {
 				this.slots[slot] = value;
 			} else {
-				throw "cannot update slot '" + slot + "' that doesn't exist";
+				throw new Error("Object updateSlot: slot '" + slot + "' doesn't exist; cannot update");
 			}
 		},
 		toIoString: function () {
-			return IoStringWrapper("#" + this.type + " " + this.send("slotNames"));
+			return IoStringWrapper("#" + getTypeOf(this) + " " + this.send("slotNames"));
 		},
 		proto: function () {
 			return this.proto;
 		},
 		writeln: function (thing) {
-			console.log(thing.send('toIoString').slots.value);
+			console.log(unwrapIoValue(thing.send('toIoString')));
+			return IoNil;
 		},
 		method: function () {
 			var args = Array.prototype.slice.call(arguments);
@@ -83,15 +100,16 @@ var _io = (function () {
 
 			var method = IoMethod.send('clone');
 			method.body = thunk;
+			method.parameters = parameters;
 
 			method.activate = function () {
 				var self = arguments[0];
 				var args = Array.prototype.slice.call(arguments, 1);
 
-				var locals = method.activate.locals || new IoObject({}, self);
+				var locals = IoObject({}, self);
 				for (var i=0; i<args.length; i++) {
-					locals.send('setSlot', IoStringWrapper(parameters[i]), args[i]);
-					if (i > parameters) break; // over-application
+					locals.send('setSlot', IoStringWrapper(this.parameters[i]), args[i]);
+					if (i > this.parameters) break; // over-application
 				}
 				locals.send('setSlot', IoStringWrapper('self'), self);
 
@@ -101,7 +119,7 @@ var _io = (function () {
 			return method;
 		},
 		if: function (condition, conseq, alt) {
-			if (condition === IoTrue) {
+			if (condition.equals(IoTrue)) {
 				return conseq.eval();
 			}
 			else {
@@ -109,62 +127,77 @@ var _io = (function () {
 			}
 		},
 		"==": function (other) {
-			return IoBooleanWrapper(this === other);
+			return IoBooleanWrapper(this.equals(other));
 		}
 	}, Lobby);
+	IoRootObject.isRootObject = true;
 
-	var IoNumber = new IoObject({
+	var IoNil = IoObject({
+		type: 'Nil',
+		toIoString: function () {
+			return IoStringWrapper("nil");
+		}
+	}, IoRootObject);
+
+	var IoNumber = IoObject({
+		type: 'Number',
 		"+": function (other) {
-			return IoNumberWrapper(this.slots.value + other.slots.value);
+			return IoNumberWrapper(unwrapIoValue(this) + unwrapIoValue(other));
 		},
 		"*": function (other) {
-			return IoNumberWrapper(this.slots.value * other.slots.value);
+			return IoNumberWrapper(unwrapIoValue(this) * unwrapIoValue(other));
 		},
 		"-": function (other) {
-			return IoNumberWrapper(this.slots.value - other.slots.value);
+			return IoNumberWrapper(unwrapIoValue(this) - unwrapIoValue(other));
 		},
 		"==": function (other) {
-			return IoBooleanWrapper(this.slots.value === other.slots.value);
+			return IoBooleanWrapper(unwrapIoValue(this) === unwrapIoValue(other));
 		},
 		toIoString: function () {
-			return IoStringWrapper(this.slots.value);
+			return IoStringWrapper(unwrapIoValue(this));
 		}
-	}, IoObject);
+	}, IoRootObject);
+
 	function IoNumberWrapper (value) {
-		return new IoObject({value: value}, IoNumber);
+		return IoObject({value: value}, IoNumber);
 	}
 
-	var IoString = new IoObject({
+	var IoString = IoObject({
+		type: 'String',
 		charAt: function (n) {
-			n = n.slots.value;
-			return IoStringWrapper(this.slots.value.charAt(n));
+			n = unwrapIoValue(n);
+			return IoStringWrapper(unwrapIoValue(this).charAt(n));
 		},
 		toIoString: function () {
 			return this;
 		}
-	}, IoObject);
+	}, IoRootObject);
+	
 	function IoStringWrapper (value) {
-		return new IoObject({value: value}, IoString);
+		return IoObject({value: value}, IoString);
 	}
 
-	var IoTrue = new IoObject({
+	var IoTrue = IoObject({
+		type: 'Boolean',
 		and: function (other) {
-			if (other === this) return this;
+			if (other.equals(this)) return this;
 			else return IoFalse;
 		},
 		toIoString: function () {
 			return IoStringWrapper("true");
 		}
-	}, IoObject);
+	}, IoRootObject);
 
-	var IoFalse = new IoObject({
+	var IoFalse = IoObject({
+		type: 'Boolean',
 		and: function (other) {
 			return IoFalse;
 		},
 		toIoString: function () {
 			return IoStringWrapper("false");
 		}
-	}, IoObject);
+	}, IoRootObject);
+
 	function IoBooleanWrapper (bool) {
 		return bool ? IoTrue : IoFalse;
 	}
@@ -173,8 +206,8 @@ var _io = (function () {
 		return {f:f, eval: function() {return f.apply(null, Array.prototype.slice.call(arguments));}};
 	}
 
-	var IoMethod = new IoObject({
-		type: "Block",
+	var IoMethod = IoObject({
+		type: 'Block',
 		activate: null // defined later
 	}, IoRootObject);
 
@@ -183,43 +216,143 @@ var _io = (function () {
 	// For internal use only.
 
 	function IoProxy (forObject, action) {
-		var p = new IoObject({type: "Proxy"}, forObject);
-		var stop = false;
-
+		var p = IoObject({type: 'Proxy'}, forObject);
+		
 		p.send = function (message) {
 			var result = action.apply(this, arguments);
-			if (stop) {
+			if (result) {
 				return result;
 			} else {
-				return IoObject.prototype.send.apply(p, arguments);
+				return IoObject.send.apply(p, arguments);
 			}
-		};
-		p.stopPrototypePropagation = function () {
-			stop = true;
 		};
 		return p;
 	}
 
+	Lobby.slots['nil'] = IoNil;
 	Lobby.slots['true'] = IoTrue;
 	Lobby.slots['false'] = IoFalse;
 	Lobby.slots['Object'] = IoRootObject;
 	Lobby.slots['Lobby'] = Lobby;
 	Lobby.proto = IoRootObject;
 
+	function isJSPrimitive (value) {
+		var type = typeof value;
+		switch (type) {
+		case 'number':
+		case 'string':
+		case 'boolean':
+		case 'function':
+			return true;
+		case 'object':
+			// Is there a less duck-typed way to do this?
+			return value.slots === undefined;
+		default:
+			throw new Error('isJSPrimitive: invalid value ' + value + ' of type ' + type);
+		}
+	}
+
+	function getTypeOf (ioValue) {
+		if (!ioValue) {
+			throw new Error('getTypeOf: attempt to get type of invalid Io value ' + ioValue);
+		}
+
+		var type = ioValue.send('type');
+
+		if (!type) {
+			throw new Error('getTypeOf: invalid type ' + ioValue);
+		}
+
+		return type;
+	}
+
 	function unwrapIoValue (ioValue) {
-        if (ioValue.type === 'Block') {
-        	// IoMethod
-            return function () {
-                return ioValue.activate.apply(ioValue, arguments);
-            };
-        } else {
-        	// IoNumber, IoString, IoBoolean
-            return ioValue.slots.value;
-        }
-    }
+
+		var type = getTypeOf(ioValue);
+
+		switch (type) {
+		case 'Nil':
+			return undefined;
+		case 'Number':
+		case 'String':
+			return ioValue.slots.value;
+		case 'Boolean':
+			return ioValue.equals(IoTrue);
+		case 'Block':
+			throw new Error('unwrapIoValue: unwrapping Io methods/blocks is not supported');
+		default:
+			var obj = {};
+			Object.keys(ioValue.slots).forEach(function (slotKey) {
+
+				var value = ioValue.slots[slotKey];
+				
+				// This has to be done because Io object slots might
+				// contain JS primitives (the type of an IoString can't
+				// be an IoString, for example - infinite loop).
+
+				// For now it's assumed that if an Io object slot contains
+				// a primitive value (and if it's not a bug), the value is a
+				// library primitive and shouldn't be copied out.
+				// This rule might not always hold.
+
+				if (!isJSPrimitive(value)) {
+					obj[slotKey] = unwrapIoValue(value);
+				}
+			});
+			return obj;
+		}
+	}
+
+	function wrapJSValue (jsValue) {
+
+		if (jsValue === undefined || jsValue === null) {
+			return IoNil;
+		}
+
+		var type = typeof jsValue;
+		switch (type) {
+		case 'number':
+			return IoNumberWrapper(jsValue);
+		case 'string':
+			return IoStringWrapper(jsValue);
+		case 'boolean':
+			return IoBooleanWrapper(jsValue);
+		case 'object':
+			var obj = IoObject({type: 'JSObject'}, IoRootObject);
+			Object.keys(jsValue).forEach(function (key) {
+				obj.slots[key] = wrapJSValue(jsValue[key]);
+			});
+			return obj;
+		case 'function':
+			throw new Error('wrapJSValue: wrapping functions is not supported');
+		default:
+			throw new Error('wrapJSValue: invalid object type ' + type);
+		}
+	}
+
+	var Proxy = {
+		set: function(obj) {
+			var actualProxy = IoProxy(Lobby, function(message) {
+				if (this.obj && this.obj[message]) {
+					if (typeof this.obj[message] === 'function') {
+						var args = Array.prototype.slice.call(arguments, 1);
+						args = args.map(_io.unwrapIoValue);
+						return wrapJSValue(this.obj[message].apply(this.obj, args));
+					} else {
+						return wrapJSValue(this.obj[message]);
+					}
+				}
+				return false;
+			});
+			actualProxy.obj = obj;
+
+			return actualProxy;
+		}
+	};
 	
 	return {
 		IoObject: IoObject,
+		IoNil: IoNil,
 		IoNumber: IoNumber,
 		IoNumberWrapper: IoNumberWrapper,
 		IoString: IoString,
@@ -232,7 +365,10 @@ var _io = (function () {
 		IoProxy: IoProxy,
 		Lobby: Lobby,
 		IoRootObject: IoRootObject,
+		getTypeOf: getTypeOf,
 		unwrapIoValue: unwrapIoValue,
+		wrapJSValue: wrapJSValue,
+		Proxy: Proxy,
 	}
 })();
 
