@@ -235,15 +235,31 @@ var _io = (function () {
 	Lobby.slots['Lobby'] = Lobby;
 	Lobby.proto = IoRootObject;
 
+	function isJSPrimitive (value) {
+		var type = typeof value;
+		switch (type) {
+		case 'number':
+		case 'string':
+		case 'boolean':
+		case 'function':
+			return true;
+		case 'object':
+			// Is there a less duck-typed way to do this?
+			return value.slots === undefined;
+		default:
+			throw new Error('isJSPrimitive: invalid value ' + value + ' of type ' + type);
+		}
+	}
+
 	function getTypeOf (ioValue) {
 		if (!ioValue) {
-			throw new Error('unwrapIoValue: attempt to unwrap invalid Io value ' + ioValue);
+			throw new Error('getTypeOf: attempt to unwrap invalid Io value ' + ioValue);
 		}
 
 		var type = ioValue.send('type');
 
 		if (!type) {
-			throw new Error('unwrapIoValue: attempt to unwrap value with invalid type ' + ioValue);
+			throw new Error('getTypeOf: attempt to unwrap value with invalid type ' + ioValue);
 		}
 
 		return type;
@@ -258,10 +274,29 @@ var _io = (function () {
 			return undefined;
 		case 'Number':
 		case 'String':
-		case 'Boolean':
 			return ioValue.slots.value;
+		case 'Boolean':
+			return ioValue.equals(IoTrue);
 		default:
-			throw new Error('unwrapIoValue: attempt to unwrap value with invalid type ' + ioValue);
+			var obj = {};
+			Object.keys(ioValue.slots).forEach(function (slotKey) {
+
+				var value = ioValue.slots[slotKey];
+				
+				// This has to be done because Io object slots might
+				// contain JS primitives (the type of an IoString can't
+				// be an IoString, for example - infinite loop).
+
+				// For now it's assumed that if an Io object slot contains
+				// a primitive value (and if it's not a bug), the value is a
+				// library primitive and shouldn't be copied out.
+				// This rule might not always hold.
+
+				if (!isJSPrimitive(value)) {
+					obj[slotKey] = unwrapIoValue(value);
+				}
+			});
+			return obj;
 		}
 	}
 
@@ -279,8 +314,14 @@ var _io = (function () {
 			return IoStringWrapper(jsValue);
 		case 'boolean':
 			return IoBooleanWrapper(jsValue);
+		case 'object':
+			var obj = IoObject({type: 'JSObject'}, IoRootObject);
+			Object.keys(jsValue).forEach(function (key) {
+				obj.slots[key] = wrapJSValue(jsValue[key]);
+			});
+			return obj;
 		case 'function':
-			throw new Error('wrapJSValue: wrapping functions is not yet implemented');
+			throw new Error('wrapJSValue: wrapping functions is not yet supported');
 		default:
 			throw new Error('wrapJSValue: invalid object type ' + type);
 		}
