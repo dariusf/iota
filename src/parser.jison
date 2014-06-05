@@ -67,7 +67,7 @@ program
 
 looselyTerminatedExpr
     : zeroOrMoreTerminators exprs zeroOrMoreTerminators
-        {return $2;}
+        {$$ = $2;}
     ;
 
 exprs
@@ -130,7 +130,7 @@ argumentList
     : looselyTerminatedExpr
         {$$ = [$1];}
     | argumentList ',' looselyTerminatedExpr
-        {$1.push($3); $$ = $1;}
+        {$1.push($3); $$ = $1; }
     ;
 
 symbol
