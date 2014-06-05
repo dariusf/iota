@@ -18,9 +18,14 @@
 				var useProxyCheckbox = $('#useProxyCheckbox')[0];
 				var functionNameField = $('#functionNameField')[0];
 
-				window.console.log = function (message) {
-					if (resultField.value === "<no output>") resultField.value = message;
-					else resultField.value += message + '\n';
+				window.console.log = function () {
+					var args = Array.prototype.slice.call(arguments);
+					var message = args.join(' ');
+					if (resultField.value === "<no output>") {
+						resultField.value = message + "\n";
+					} else {
+						resultField.value += message + '\n';
+					}
 				};
 
 				function update () {
@@ -30,13 +35,14 @@
 					try {
 						astField.value = JSON.stringify(iota.parse(inputField.value), null, 4);
 
-						jsField.value = iota.compile(inputField.value, {wrapWithFunction: wrapWithFunctionCheckbox.checked,
+						jsField.value = iota.compile(inputField.value, {
+							wrapWithFunction: wrapWithFunctionCheckbox.checked,
 							useProxy: useProxyCheckbox.checked,
 							functionName: functionNameField.value
 						});
 
 						try {
-							eval(iota.compile(inputField.value));
+							console.log('=>', _io.unwrapIoValue(eval(iota.compile(inputField.value))));
 						} catch(e) {
 							resultField.value = e;
 						}
@@ -76,7 +82,7 @@
 		<br/>
 		<textarea id="js" readonly rows="10" cols="30" placeholder="Syntax Tree"></textarea>
 		<br/>
-		<textarea id="result" readonly rows="1" cols="30" placeholder="Result"></textarea>
+		<textarea id="result" readonly rows="4" cols="30" placeholder="Result"></textarea>
 		<h6>Check out the project page <a href="https://github.com/dariusf/iota">here</a>.</h6>
 	</body>
 </html>
