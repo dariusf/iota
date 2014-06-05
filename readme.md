@@ -106,27 +106,49 @@ Parses, then outputs ready-to-run JavaScript.
 JavaScript Interop
 ------------------
 
+**Primitives**
+
 A number of Io primitives are bound to their JavaScript equivalents. For example, `writeln` invokes `console.log`.
 
-To call Io code from JavaScript, a number of options must be set:
+**Executing Io code from JavaScript**
+
+A number of options must first be set:
 
 ```js
 var jsCode = iota.compile(ioCode, {
 	wrapWithFunction: true,
-	functionName: 'test',
+	functionName: 'ioFromJS'
+});
+eval(jsCode);
+
+ioFromJS();
+```
+Calling `eval` will make a function named `ioFromJS` available in the global scope (see the `functionName` option if this is undesirable; more sophisticated sandboxing can also be used). It will implicitly return the value of the last Io statement.
+
+**Executing JavaScript code from Io**
+
+An additional option, `useProxy`, should be set:
+
+```js
+var jsCode = iota.compile(ioCode, {
+	wrapWithFunction: true,
+	functionName: 'jsFromIo',
 	useProxy: true
 });
 eval(jsCode);
+
+jsFromIo.call({a: 24601, b: function() {return 'one day more';}});
 ```
-This will make a function named `test` available in the global scope (see the `functionName` option if this is undesirable). It may then be invoked:
+The function may then be invoked using `call`, `apply`, or `bind` on a JavaScript object. Properties of the object will be made available as Io objects in the Io scope chain (right before `Lobby`). Messages passed to them will be translated into property accesses or method invocations, and arguments and return values will be relayed appropriately.
+
+Unfortunately there is no other correspondence between Io methods/blocks and JavaScript functions yet. The following are illegal:
 
 ```js
-test();
-test.call({a: 24601, b: function() {return 'one day more';}});
+jsFromIo.call({illegal: function() {
+	return function(){}; // cannot be translated into an Io method
+}});
+eval(iota.compile('method(n, 1)')); // cannot be translated into a JS function
 ```
-The value of the last Io statement will be implicitly returned.
-
-`useProxy` will ensure that in the second case, the properties `a` and `b` will be made available as Io objects in the Io scope chain (right before `Lobby`).
 
 License
 -------

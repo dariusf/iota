@@ -44,7 +44,7 @@ var _io = (function () {
 				}
 			}
 		} else {
-			console.warn("Object send: unrecognized message '" + message + "' from object of type " + getTypeOf(this));
+			throw new Error("Object send: unrecognized message '" + message + "'");
 		}
 	};
 
@@ -100,6 +100,7 @@ var _io = (function () {
 
 			var method = IoMethod.send('clone');
 			method.body = thunk;
+			method.parameters = parameters;
 
 			method.activate = function () {
 				var self = arguments[0];
@@ -107,8 +108,8 @@ var _io = (function () {
 
 				var locals = IoObject({}, self);
 				for (var i=0; i<args.length; i++) {
-					locals.send('setSlot', IoStringWrapper(parameters[i]), args[i]);
-					if (i > parameters) break; // over-application
+					locals.send('setSlot', IoStringWrapper(this.parameters[i]), args[i]);
+					if (i > this.parameters) break; // over-application
 				}
 				locals.send('setSlot', IoStringWrapper('self'), self);
 
@@ -253,13 +254,13 @@ var _io = (function () {
 
 	function getTypeOf (ioValue) {
 		if (!ioValue) {
-			throw new Error('getTypeOf: attempt to unwrap invalid Io value ' + ioValue);
+			throw new Error('getTypeOf: attempt to get type of invalid Io value ' + ioValue);
 		}
 
 		var type = ioValue.send('type');
 
 		if (!type) {
-			throw new Error('getTypeOf: attempt to unwrap value with invalid type ' + ioValue);
+			throw new Error('getTypeOf: invalid type ' + ioValue);
 		}
 
 		return type;
@@ -277,6 +278,8 @@ var _io = (function () {
 			return ioValue.slots.value;
 		case 'Boolean':
 			return ioValue.equals(IoTrue);
+		case 'Block':
+			throw new Error('unwrapIoValue: unwrapping Io methods/blocks is not supported');
 		default:
 			var obj = {};
 			Object.keys(ioValue.slots).forEach(function (slotKey) {
@@ -321,7 +324,7 @@ var _io = (function () {
 			});
 			return obj;
 		case 'function':
-			throw new Error('wrapJSValue: wrapping functions is not yet supported');
+			throw new Error('wrapJSValue: wrapping functions is not supported');
 		default:
 			throw new Error('wrapJSValue: invalid object type ' + type);
 		}
