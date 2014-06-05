@@ -6,3 +6,4 @@ update:
 	cp $(BROWSER)/index.html index.html -f
 	cp $(BROWSER)/style.css style.css -f
 	cp $(BROWSER)/iota-browser.js iota-browser.js -f
+	cp $(BROWSER)/lib.js lib.js -f
