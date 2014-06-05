@@ -18,11 +18,12 @@
 				var useProxyCheckbox = $('#useProxyCheckbox')[0];
 
 				window.console.log = function (message) {
-					resultField.value += message + '\n';
+					if (resultField.value === "<no output>") resultField.value = message;
+					else resultField.value += message + '\n';
 				};
 
 				function update () {
-					resultField.value = "";
+					resultField.value = "<no output>";
 					try {
 						astField.value = JSON.stringify(iota.parse(inputField.value), null, 4);
 

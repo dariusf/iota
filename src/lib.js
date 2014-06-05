@@ -228,6 +228,7 @@ var _io = (function () {
 		return p;
 	}
 
+	Lobby.slots['nil'] = IoNil;
 	Lobby.slots['true'] = IoTrue;
 	Lobby.slots['false'] = IoFalse;
 	Lobby.slots['Object'] = IoRootObject;
