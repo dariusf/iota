@@ -61,7 +61,12 @@
     */
 
 program
-    : zeroOrMoreTerminators exprs zeroOrMoreTerminators EOF
+    : looselyTerminatedExpr EOF
+        {return $1;}
+    ;
+
+looselyTerminatedExpr
+    : zeroOrMoreTerminators exprs zeroOrMoreTerminators
         {return $2;}
     ;
 
@@ -122,9 +127,9 @@ arguments
     ;
 
 argumentList
-    : exprs
+    : looselyTerminatedExpr
         {$$ = [$1];}
-    | argumentList ',' exprs
+    | argumentList ',' looselyTerminatedExpr
         {$1.push($3); $$ = $1;}
     ;
 
