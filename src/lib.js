@@ -44,7 +44,7 @@ var _io = (function () {
 				}
 			}
 		} else {
-			console.warn("Object send: unrecognized message '" + message + "' from object of type " + this.slots.type);
+			console.warn("Object send: unrecognized message '" + message + "' from object of type " + getTypeOf(this));
 		}
 	};
 
@@ -84,7 +84,7 @@ var _io = (function () {
 			}
 		},
 		toIoString: function () {
-			return IoStringWrapper("#" + this.type + " " + this.send("slotNames"));
+			return IoStringWrapper("#" + getTypeOf(this) + " " + this.send("slotNames"));
 		},
 		proto: function () {
 			return this.proto;
@@ -235,7 +235,7 @@ var _io = (function () {
 	Lobby.slots['Lobby'] = Lobby;
 	Lobby.proto = IoRootObject;
 
-	function unwrapIoValue (ioValue) {
+	function getTypeOf (ioValue) {
 		if (!ioValue) {
 			throw new Error('unwrapIoValue: attempt to unwrap invalid Io value ' + ioValue);
 		}
@@ -245,6 +245,13 @@ var _io = (function () {
 		if (!type) {
 			throw new Error('unwrapIoValue: attempt to unwrap value with invalid type ' + ioValue);
 		}
+
+		return type;
+	}
+
+	function unwrapIoValue (ioValue) {
+
+		var type = getTypeOf(ioValue);
 
 		switch (type) {
 		case 'Nil':
@@ -314,6 +321,7 @@ var _io = (function () {
 		IoProxy: IoProxy,
 		Lobby: Lobby,
 		IoRootObject: IoRootObject,
+		getTypeOf: getTypeOf,
 		unwrapIoValue: unwrapIoValue,
 		wrapJSValue: wrapJSValue,
 		Proxy: Proxy,
