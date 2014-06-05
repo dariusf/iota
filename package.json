@@ -1,6 +1,6 @@
 {
   "name": "iota-compiler",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Io-to-JavaScript compiler",
   "main": "iota.js",
   "dependencies": {
