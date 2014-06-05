@@ -225,42 +225,67 @@ function parseAndEmit (code) {
 
 function wrapInFunction (program) {
 
-	return {
-		type: "Program",
-		body: [{
-			"type": "FunctionDeclaration",
-			"id": {
-				"type": "Identifier",
-				"name": options.functionName
-			},
-			"params": [],
-			"body": {
-				"type": "BlockStatement",
-				"body": [{
-					"type": "VariableDeclaration",
-					"declarations": [{
-						"type": "VariableDeclarator",
-						"id": {
-							"type": "Identifier",
-							"name": options.self
-						},
-						"init": {
-							"type": "LogicalExpression",
-							"operator": "||",
-							"left": {
-								"type": "ThisExpression"
-							},
-							"right": {
-								"type": "ObjectExpression",
-								"properties": []
-							}
-						}
-					}],
-					"kind": "var"
-				}].concat(program.body)
-			}
-		}]
+	var bodyBlockStatement = {
+		"type": "BlockStatement",
+		"body": [{
+			"type": "VariableDeclaration",
+			"declarations": [{
+				"type": "VariableDeclarator",
+				"id": {
+					"type": "Identifier",
+					"name": options.self
+				},
+				"init": {
+					"type": "LogicalExpression",
+					"operator": "||",
+					"left": {
+						"type": "ThisExpression"
+					},
+					"right": {
+						"type": "ObjectExpression",
+						"properties": []
+					}
+				}
+			}],
+			"kind": "var"
+		}].concat(program.body)
 	};
+
+	var propertyAccess = options.functionName.indexOf('.') !== -1;
+
+	if (propertyAccess) {
+		return {
+	        "type": "ExpressionStatement",
+	        "expression": {
+	            "type": "AssignmentExpression",
+	            "operator": "=",
+	            "left": {
+	                "type": "Identifier",
+	                "name": options.functionName
+	            },
+	            "right": {
+	                "type": "FunctionExpression",
+	                "id": null,
+	                "params": [],
+	                "body": bodyBlockStatement
+	            }
+	        }
+	    };
+	}
+	else {
+		return {
+			type: "Program",
+			body: [{
+				"type": "FunctionDeclaration",
+				"id": {
+					"type": "Identifier",
+					"name": options.functionName
+				},
+				"params": [],
+				"body": bodyBlockStatement
+			}]
+		};
+	}
 }
 
 function implicitReturnStatement(expressionStatement) {

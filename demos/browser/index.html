@@ -16,6 +16,7 @@
 
 				var wrapWithFunctionCheckbox = $('#wrapWithFunctionCheckbox')[0];
 				var useProxyCheckbox = $('#useProxyCheckbox')[0];
+				var functionNameField = $('#functionNameField')[0];
 
 				window.console.log = function (message) {
 					if (resultField.value === "<no output>") resultField.value = message;
@@ -23,11 +24,16 @@
 				};
 
 				function update () {
+					functionNameField.disabled = !wrapWithFunctionCheckbox.checked;
+					
 					resultField.value = "<no output>";
 					try {
 						astField.value = JSON.stringify(iota.parse(inputField.value), null, 4);
 
-						jsField.value = iota.compile(inputField.value, {wrapWithFunction: wrapWithFunctionCheckbox.checked, useProxy: useProxyCheckbox.checked});
+						jsField.value = iota.compile(inputField.value, {wrapWithFunction: wrapWithFunctionCheckbox.checked,
+							useProxy: useProxyCheckbox.checked,
+							functionName: functionNameField.value
+						});
 
 						try {
 							eval(iota.compile(inputField.value));
@@ -44,8 +50,11 @@
 				inputField.addEventListener("keyup", update);
 				wrapWithFunctionCheckbox.addEventListener("change", update);
 				useProxyCheckbox.addEventListener("change", update);
+				functionNameField.addEventListener("keyup", update);
 
 				inputField.value = "fact := method(n, if (n == 0, 1, n * fact (n - 1)))\nwriteln(fact(5))";
+				functionNameField.value = "plan";
+
 				update();
 
 			};
@@ -57,8 +66,11 @@
 		<p>Iota is a source-to-source compiler that translates <a href="http://iolanguage.org/">Io</a> code into JavaScript.</p>
 		<textarea id="input" rows="5" cols="30" placeholder="Your Io code here"></textarea>
 		<div id="options">
-			<input type="checkbox" id="wrapWithFunctionCheckbox">Wrap with function</input>
-			<input type="checkbox" id="useProxyCheckbox">Use proxy</input>
+			<input type="checkbox" id="wrapWithFunctionCheckbox"/>
+			<label for="wrapWithFunctionCheckbox">Wrap with function</label>
+			<input type="text" id="functionNameField"/>
+			<input type="checkbox" id="useProxyCheckbox"/>
+			<label for="useProxyCheckbox">Use proxy</label>
 		</div>
 		<textarea id="ast" readonly rows="15" cols="30" placeholder="Compiled JavaScript"></textarea>
 		<br/>
