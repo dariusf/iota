@@ -1,0 +1,17 @@
+#!/usr/bin/env node
+
+process.title = 'iota';
+
+var iota = require('iota-compiler');
+
+var fs = require('fs');
+var path = require('path');
+
+var filename = process.argv[2];
+
+if (filename) {
+	var code = fs.readFileSync(path.resolve(process.cwd(), filename), {encoding: 'utf-8'});
+	console.log(iota.compile(code));
+} else {
+	console.log('error: no filename provided');
+}

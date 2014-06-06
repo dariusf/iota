@@ -50,7 +50,9 @@ The AST constructed by the parser complies with the [Mozilla Parser API](https:/
 Installation
 ------------
 
-- `npm install iota-compiler`
+`npm install [-g] iota-compiler`
+
+Installing globally gives you easy access to the command-line interface.
 
 Usage
 -----
@@ -79,8 +81,9 @@ Simply include `iota-browser.js` and `lib.js` in your web page. Usage is the sam
 **CLI**
 
 ```
-node iota ./demos/node/demo.io
+iota ./demos/node/demo.io
 ```
+You'll have to install Iota globally for this to work. Installing locally will place the executable at `node_modules/.bin/iota` intead.
 
 API
 ---
@@ -152,4 +155,4 @@ eval(iota.compile('method(n, 1)')); // cannot be translated into a JS function
 
 License
 -------
-MIT
+[MIT](http://opensource.org/licenses/MIT)
