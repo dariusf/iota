@@ -99,8 +99,10 @@ var _io = (function () {
 			var thunk = args[args.length-1];
 
 			var method = IoMethod.send('clone');
+			method.slots.type = IoMethod.slots.type; // TODO get rid of this once clone properly sets the type field
 			method.body = thunk;
 			method.parameters = parameters;
+			method.self = this;
 
 			method.activate = function () {
 				var self = arguments[0];
@@ -257,6 +259,12 @@ var _io = (function () {
 			throw new Error('getTypeOf: attempt to get type of invalid Io value ' + ioValue);
 		}
 
+		if (typeof ioValue === 'function') {
+			// Assuming this isn't a bug... the value is either a
+			// native method or a wrapped external method
+			return 'Block';
+		}
+
 		var type = ioValue.send('type');
 
 		if (!type) {
@@ -279,7 +287,18 @@ var _io = (function () {
 		case 'Boolean':
 			return ioValue.equals(IoTrue);
 		case 'Block':
-			throw new Error('unwrapIoValue: unwrapping Io methods/blocks is not supported');
+			// To wrap a block, we wrap it in a function which
+			// activates the original Io method when applied.
+			// The appropriate Io context is kept.
+
+			return function () {
+				var args = Array.prototype.slice.call(arguments).map(_io.wrapJSValue);
+				if (ioValue.activate) {
+					return unwrapIoValue(ioValue.activate.apply(ioValue, [ioValue.self].concat(args)));
+				} else {
+					throw new Error('unwrapIoValue: Io method has type \'Block\' but does not have an activation method');
+				}
+			};
 		default:
 			var obj = {};
 			Object.keys(ioValue.slots).forEach(function (slotKey) {
@@ -324,11 +343,19 @@ var _io = (function () {
 			});
 			return obj;
 		case 'function':
-			throw new Error('wrapJSValue: wrapping functions is not supported');
+			
+			// We use the fact that most library methods are vanilla
+			// functions to simply return a vanilla function.
+			// Additional type safety would probably be a good idea
+			// here... eventually
+
+			return jsValue;
 		default:
 			throw new Error('wrapJSValue: invalid object type ' + type);
 		}
 	}
+
+	// A special proxy for JavaScript interop
 
 	var Proxy = {
 		set: function(obj) {

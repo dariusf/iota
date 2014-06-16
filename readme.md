@@ -142,16 +142,7 @@ eval(jsCode);
 
 jsFromIo.call({a: 24601, b: function() {return 'one day more';}});
 ```
-The function may then be invoked using `call`, `apply`, or `bind` on a JavaScript object. Properties of the object will be made available as Io objects in the Io scope chain (right before `Lobby`). Messages passed to them will be translated into property accesses or method invocations, and arguments and return values will be relayed appropriately.
-
-Unfortunately there is no other correspondence between Io methods/blocks and JavaScript functions yet. The following are illegal:
-
-```js
-jsFromIo.call({illegal: function() {
-	return function(){}; // cannot be translated into an Io method
-}});
-eval(iota.compile('method(n, 1)')); // cannot be translated into a JS function
-```
+The function may then be invoked using `call`, `apply`, or `bind` on a JavaScript object. Properties of the object will be made available as Io objects in the Io scope chain (right before `Lobby`). Messages passed to them will be translated into property accesses or method invocations, and arguments will be relayed appropriately. The value of the last Io statement will be returned.
 
 License
 -------
