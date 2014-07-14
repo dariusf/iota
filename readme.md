@@ -44,6 +44,7 @@ Dependencies
 - `make`
 - [Jison](http://zaach.github.io/jison/)
 - [Browserify](http://browserify.org/)
+- [Jasmine](https://github.com/mhevery/jasmine-node)
 
 The AST constructed by the parser complies with the [Mozilla Parser API](https://developer.mozilla.org/en-US/docs/SpiderMonkey/Parser_API) specification.
 
@@ -61,21 +62,24 @@ Usage
 
 ```js
 var iota = require('iota-compiler');
-var _io = iota.lib; // make runtime library available
 
-eval(iota.compile('fact := method(n, if (n == 0, 1, n * fact (n - 1))); writeln(fact(5))'));
+var ioProgram = 'fact := method(n, if (n == 0, 1, n * fact (n - 1))); fact(5)';
+iota.eval(ioProgram);
 // => 120
-```
 
+// Lower-level API:
+
+var _io = iota.lib; // make runtime library available
+var result = eval(iota.compile(ioProgram));
+_io.unwrapIoValue(result);
+// => 120
+_io.getTypeOf(result);
+// => Number
+```
 **Browser**
 
-A demo of Iota running in a web page can be found in `./demos/browser`.
-```js
-var iota = require('iota-compiler');
+A demo of Iota running in a web page may be found in `./demos/browser`.
 
-eval(iota.compile('fact := method(n, if (n == 0, 1, n * fact (n - 1))); writeln(fact(5))'));
-// => 120
-```
 Simply include `iota-browser.js` and `lib.js` in your web page. Usage is the same as with node (complete with `require`, courtesy of Browserify), except that the `_io` binding isn't required.
 
 **CLI**
@@ -106,6 +110,11 @@ Parses, then outputs ready-to-run JavaScript.
 - `self` The name of object that the wrapper function is being invoked with. Defaults to `self`.
 - `runtimeLib` The name of the runtime library binding that Iota will look for. Defaults to `_io`.
 
+```js
+iota.eval(code);
+```
+Convenience method that evalutes a string of Io code, then unwraps and returns the result.
+
 JavaScript Interop
 ------------------
 
@@ -115,7 +124,9 @@ A number of Io primitives are bound to their JavaScript equivalents. For example
 
 **Executing Io code from JavaScript**
 
-A number of options must first be set:
+The simplest way is to use `iota.eval` as shown above.
+
+`iota.compile` gives a greater level of control, with provisions for wrapping the generated code in a function and executing it in the context of an arbitrary object. An example of the former:
 
 ```js
 var jsCode = iota.compile(ioCode, {

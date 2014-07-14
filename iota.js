@@ -1,6 +1,7 @@
 
 var compile = require('./src/compile');
 var lib = require('./src/lib');
+var _io = lib;
 
 function compileCode(input, options) {
 	options = options || {};
@@ -15,8 +16,18 @@ function parse(input, options) {
 	return compile.parse(input);
 }
 
+function evaluate (code) {
+	var context = {};
+	eval(compileCode(code, {
+		wrapWithFunction: true,
+		functionName: 'context.run'
+	}));
+	return context.run();
+}
+
 module.exports = {
 	compile: compileCode,
 	parse: parse,
-	lib: lib
+	lib: lib,
+	eval: evaluate,
 };
