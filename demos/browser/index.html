@@ -42,9 +42,14 @@
 						});
 
 						try {
-							var ioVal = eval(iota.compile(inputField.value));
-							var type = _io.getTypeOf(ioVal);
-							console.log('=>', _io.unwrapIoValue(ioVal), '(' + type + ')');
+							var compiled = iota.compile(inputField.value);
+							if (compiled === '') {
+								console.log('=>');
+							} else {
+								var ioVal = eval(compiled);
+								var type = _io.getTypeOf(ioVal);
+								console.log('=>', _io.unwrapIoValue(ioVal) === undefined ? 'undefined' : _io.unwrapIoValue(ioVal), '(' + type + ')');
+							}
 						} catch(e) {
 							resultField.value = e;
 						}
