@@ -1,58 +1,47 @@
-/* description: Parses Io programs. */
 
-/* lexical grammar */
+/* A parser definition for Io. */
+
+/* Lexical grammar */
+
 %lex
 %x DoubleQuotedString
 %x QuotedStringEscape
 %%
 
-[ \t]+                  {}/* whitespace */
-(\#|\/\/)[^\r\n]*             {} // single line comments
-\/\*([\u0000-\uffff]*?)\*\/  {} // multi
-\b[0-9]+("."[0-9]+)?\b  return 'NUMBER'
-[^()\[\]{}",;\s]+       return 'IDENTIFIER'
-"("                     return '('
-")"                     return ')'
-\r?\n                   return 'NEWLINE'
-";"                     return ';'
-","                     return ','
+[ \t]+                                  {} /* whitespace */
+(\#|\/\/)[^\r\n]*                       {} /* single line */
+\/\*([\u0000-\uffff]*?)\*\/             {} /* multiline */
 
-'""'                                          return 'EmptyString'
-'"'                                           this.begin('DoubleQuotedString');
-<DoubleQuotedString>\\                        this.begin('QuotedStringEscape');
-<DoubleQuotedString>'"'                       this.popState();
-<QuotedStringEscape>(.|\r\n|\n)               { this.popState(); return 'QuotedStringEscape'; } /* The newlines are there because we can span strings across lines using \ */
-<DoubleQuotedString>[^"\\]*                   return 'QuotedString';
+\b[0-9]+("."[0-9]+)?\b                  return 'NUMBER'
+[^()\[\]{}",;\s]+                       return 'IDENTIFIER'
+"("                                     return '('
+")"                                     return ')'
+\r?\n                                   return 'NEWLINE'
+";"                                     return ';'
+","                                     return ','
 
-<<EOF>>                 return 'EOF'
-.                       return 'INVALID'
+'""'                                    return 'EmptyString'
+'"'                                     this.begin('DoubleQuotedString');
+<DoubleQuotedString>\\                  this.begin('QuotedStringEscape');
+<DoubleQuotedString>'"'                 this.popState();
+<QuotedStringEscape>(.|\r\n|\n)         { /* The newlines are there because we can span strings across lines using \ */
+                                            this.popState();
+                                            return 'QuotedStringEscape';
+                                        }
+<DoubleQuotedString>[^"\\]*             return 'QuotedString';
 
-/*
-"*"                     return '*'
-"/"                     return '/'
-"-"                     return '-'
-"+"                     return '+'
-"^"                     return '^'
-"PI"                    return 'PI'
-"E"                     return 'E'
-*/
+<<EOF>>                                 return 'EOF'
+.                                       return 'INVALID'
 
 /lex
 
-/* operator associations and precedence */
-
-/*
-%left '+' '-'
-%left '*' '/'
-%left '^'
-%left UMINUS
-*/
-
 %start program
 
-%% /* language grammar */
+%%
 
     /*
+
+        Informally,
 
         exp        ::= { message | terminator }
         message    ::= symbol [arguments]

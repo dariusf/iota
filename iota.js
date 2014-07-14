@@ -1,7 +1,4 @@
 
-var fs = require('fs');
-var path = require('path');
-
 var compile = require('./src/compile');
 var lib = require('./src/lib');
 

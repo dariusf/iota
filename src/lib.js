@@ -396,7 +396,7 @@ var _io = (function () {
 		unwrapIoValue: unwrapIoValue,
 		wrapJSValue: wrapJSValue,
 		Proxy: Proxy,
-	}
+	};
 })();
 
 if (typeof module !== 'undefined' && module.exports) {
