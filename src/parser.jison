@@ -65,6 +65,8 @@
 program
     : looselyTerminatedExpr EOF
         {return $1;}
+    | EOF
+        {return [];}
     ;
 
 looselyTerminatedExpr
