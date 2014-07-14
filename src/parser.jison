@@ -1,4 +1,4 @@
-/* description: Parses end executes Io programs. */
+/* description: Parses Io programs. */
 
 /* lexical grammar */
 %lex
@@ -6,7 +6,9 @@
 %x QuotedStringEscape
 %%
 
-[ \t]+                      /* whitespace */
+[ \t]+                  {}/* whitespace */
+(\#|\/\/)[^\r\n]*             {} // single line comments
+\/\*([\u0000-\uffff]*?)\*\/  {} // multi
 \b[0-9]+("."[0-9]+)?\b  return 'NUMBER'
 [^()\[\]{}",;\s]+       return 'IDENTIFIER'
 "("                     return '('
