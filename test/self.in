@@ -1,5 +1,0 @@
-Person := Object clone
-Person talk := method(writeln(name))
-bob := Person clone
-bob name := "bob"
-bob talk

@@ -1,6 +1,6 @@
 {
   "name": "iota-compiler",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Io-to-JavaScript compiler",
   "main": "iota.js",
   "dependencies": {
@@ -8,13 +8,14 @@
   },
   "devDependencies": {
     "browserify": "~4.1.2",
+    "jasmine-node": "^1.14.3",
     "jison": "~0.4.13"
   },
   "bin": {
-  	"iota": "bin/iota-cli"
-	},
+    "iota": "bin/iota-cli"
+  },
   "scripts": {
-    "test": "node test/test"
+    "test": "./node_modules/.bin/jasmine-node test"
   },
   "repository": {
     "type": "git",

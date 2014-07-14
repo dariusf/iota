@@ -17,6 +17,7 @@ function parse(input, options) {
 }
 
 function evaluate (code) {
+	if (code === '') return null;
 	var context = {};
 	eval(compileCode(code, {
 		wrapWithFunction: true,
