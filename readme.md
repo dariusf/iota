@@ -38,6 +38,7 @@ Dependencies
 
 - [node.js](http://nodejs.org/)
 - [Escodegen](https://github.com/Constellation/escodegen)
+- [ast-types](https://github.com/benjamn/ast-types)
 
 **Development**
 
@@ -130,8 +131,8 @@ The simplest way is to use `iota.eval` as shown above.
 
 ```js
 var jsCode = iota.compile(ioCode, {
-	wrapWithFunction: true,
-	functionName: 'ioFromJS'
+    wrapWithFunction: true,
+    functionName: 'ioFromJS'
 });
 eval(jsCode);
 
@@ -145,9 +146,9 @@ An additional option, `useProxy`, should be set:
 
 ```js
 var jsCode = iota.compile(ioCode, {
-	wrapWithFunction: true,
-	functionName: 'jsFromIo',
-	useProxy: true
+    wrapWithFunction: true,
+    functionName: 'jsFromIo',
+    useProxy: true
 });
 eval(jsCode);
 

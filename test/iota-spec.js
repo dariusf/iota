@@ -11,7 +11,8 @@ describe('runtime', function() {
 		expect(iota.eval('\n;1;/*aa akkdh jkh\nasds\n*/;\n3 6;;')).toBe(6);
 		expect(iota.parse('')).toEqual({
 		    "type": "Program",
-		    "body": []
+		    "body": [],
+		    loc: null
 		});
 		expect(iota.compile('')).toBe('');
 		expect(iota.eval('')).toBe(null);

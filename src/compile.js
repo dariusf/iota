@@ -1,5 +1,8 @@
 
 var escodegen = require('escodegen');
+var astTypes = require('ast-types');
+var n = astTypes.namedTypes;
+var b = astTypes.builders;
 
 var parser = require('./parser');
 var pratt = require('./pratt');
@@ -178,22 +181,12 @@ function parse (code) {
 	var generated = [];
 	ast.forEach(function (chain) {
 
-		var proxy = {
-			"type": "CallExpression",
-			"callee": {
-				"type": "MemberExpression",
-				"computed": false,
-				"object": astIdentifier("Proxy"),
-				"property": {
-					"type": "Identifier",
-					"name": "set"
-				}
-			},
-			"arguments": [{
-				"type": "Identifier",
-				"name": options.self
-			}]
-		};
+		var proxy = b.callExpression(
+			b.memberExpression(
+				astIdentifier("Proxy"),
+				b.identifier("set"),
+				false),
+			[b.identifier(options.self)])
 
 		chain = compile(chain,
 			options.useProxy ? proxy : astIdentifier('Lobby'),
@@ -201,15 +194,8 @@ function parse (code) {
 		generated.push(chain);
 	});
 	
-	generated = {
-		type: "Program",
-		body: generated.map(function (expr) {
-			return {
-				type: "ExpressionStatement",
-				expression: expr
-			};
-		})
-	};
+	generated = b.program(
+		generated.map(b.expressionStatement));
 
 	if (options.wrapWithFunction) {
 		generated.body[generated.body.length-1] = implicitReturnStatement(generated.body[generated.body.length-1]);
@@ -225,88 +211,44 @@ function parseAndEmit (code) {
 
 function wrapInFunction (program) {
 
-	var bodyBlockStatement = {
-		"type": "BlockStatement",
-		"body": [{
-			"type": "VariableDeclaration",
-			"declarations": [{
-				"type": "VariableDeclarator",
-				"id": {
-					"type": "Identifier",
-					"name": options.self
-				},
-				"init": {
-					"type": "LogicalExpression",
-					"operator": "||",
-					"left": {
-						"type": "ThisExpression"
-					},
-					"right": {
-						"type": "ObjectExpression",
-						"properties": []
-					}
-				}
-			}],
-			"kind": "var"
-		}].concat(program.body)
-	};
+	var bodyBlockStatement = b.blockStatement(
+		[
+			b.variableDeclaration("var", [
+				b.variableDeclarator(
+					b.identifier(options.self),
+					b.logicalExpression(
+						"||",
+						b.thisExpression(),
+						b.objectExpression([])))])
+		].concat(program.body));
 
 	var propertyAccess = options.functionName.indexOf('.') !== -1;
 
 	if (propertyAccess) {
-		return {
-	        "type": "ExpressionStatement",
-	        "expression": {
-	            "type": "AssignmentExpression",
-	            "operator": "=",
-	            "left": {
-	                "type": "Identifier",
-	                "name": options.functionName
-	            },
-	            "right": {
-	                "type": "FunctionExpression",
-	                "id": null,
-	                "params": [],
-	                "body": bodyBlockStatement
-	            }
-	        }
-	    };
+		return b.expressionStatement(
+			b.assignmentExpression(
+				"=",
+				b.identifier(options.functionName),
+				b.functionExpression(null, [], bodyBlockStatement)));
 	}
 	else {
-		return {
-			type: "Program",
-			body: [{
-				"type": "FunctionDeclaration",
-				"id": {
-					"type": "Identifier",
-					"name": options.functionName
-				},
-				"params": [],
-				"body": bodyBlockStatement
-			}]
-		};
+		return b.program([
+			b.functionDeclaration(
+				b.identifier(options.functionName),
+				[],
+				bodyBlockStatement)]);
 	}
 }
 
 function implicitReturnStatement(expressionStatement) {
 
 	function unwrap(expr) {
-		return {
-			type: "CallExpression",
-			callee: {
-				type: "MemberExpression",
-				computed: false,
-				object: {
-					type: "Identifier",
-					name: options.runtimeLib
-				},
-				property: {
-					type: "Identifier",
-					name: "unwrapIoValue"
-				}
-			},
-			arguments: [expr]
-		};
+		return b.callExpression(
+			b.memberExpression(
+				b.identifier(options.runtimeLib),
+				b.identifier("unwrapIoValue"),
+				false),
+			[expr]);
 	}
 
 	// var program = ast;
@@ -314,10 +256,7 @@ function implicitReturnStatement(expressionStatement) {
 	// var blockStatement = wrapperFunction.body;
 	// var lastExpressionStatement = blockStatement.body[blockStatement.body.length - 1];
 	// blockStatement.body[blockStatement.body.length - 1] = ;
-	return {
-		type: "ReturnStatement",
-		argument: unwrap(expressionStatement.expression)
-	};
+	return b.returnStatement(unwrap(expressionStatement.expression));
 }
 
 function getEnclosingRange (exprlist) {
@@ -367,66 +306,40 @@ function compile (ast, receiver, localContext) {
 		var symbol = ast.value;
 
 		if (symbol.value.type === 'number') {
-			result = {
-				// loc: symbol.loc,
-				type: "CallExpression",
-				callee: astIdentifier('IoNumberWrapper'),// symbol.loc),
-				arguments: [{type: "Literal", value: +symbol.value.value}]//, loc: symbol.loc}]
-			};
+			result = b.callExpression(
+				astIdentifier('IoNumberWrapper'),
+				[b.literal(+symbol.value.value)]);
 		}
 		else if (symbol.value.type === 'string') {
-			result = {
-				// loc: symbol.loc,
-				type: "CallExpression",
-				callee: astIdentifier('IoStringWrapper'),// symbol.loc),
-				arguments: [{type: "Literal", value: symbol.value.value}]//, loc: symbol.loc}]
-			};
+			result = b.callExpression(
+				astIdentifier('IoStringWrapper'),
+				[b.literal(symbol.value.value)]);
 		}
 		else if (symbol.value.type === 'identifier') {
 			var symbolValue = {type: "Literal", value: symbol.value.value};
 	
 			// a.b(args);
-			result = {
-				// loc: symbol.loc,
-				type: "CallExpression",
-				callee: {
-					// loc: symbol.loc,
-				    type: "MemberExpression",
-				    object: receiver, // a
-				    property: {
-				    	// loc: symbol.loc,
-		                type: "Identifier",
-		                name: "send" // b
-		            },
-				    computed: false,
-				},
-				arguments: [symbolValue].concat(symbol.arguments.map(function (arg) {
+			result = b.callExpression(
+				b.memberExpression(receiver, b.identifier("send"), false),
+				[symbolValue].concat(symbol.arguments.map(function (arg) {
 					 // arg is a list of exprs delimted by ;
-                    var result = {
-                        type: "SequenceExpression",
-                        expressions: arg.map(function (realarg) {
+					var result = b.sequenceExpression(
+						arg.map(function (realarg) {
                             return compile(realarg, localContext, localContext);
-                        })
-                    };
-
+                        }));
                     // var loc = getEnclosingRange(result.expressions);
                     // if (loc !== null) result.loc = loc;
-
                     return result;
-				}))
-			};
+				})));
 
 			if (symbolValue.value === "method") {
 
 				result.arguments = [symbolValue].concat(symbol.arguments.map(function (arg) {
 					// Arguments will have the locals object as context
 					// arg is also a list of expressions here
-                    return {
-                        type: "SequenceExpression",
-                        expressions: arg.map(function (realarg) {
-							return compile(realarg, {type: "Identifier", name: "locals"}, {type: "Identifier", name: "locals"});
-                        })
-                    };
+                    return b.sequenceExpression(arg.map(function (realarg) {
+						return compile(realarg, {type: "Identifier", name: "locals"}, {type: "Identifier", name: "locals"});
+                    }));
 				}));
 
 				// Turn all arguments but the last to strings instead;
@@ -443,25 +356,14 @@ function compile (ast, receiver, localContext) {
 				var lastArgument = result.arguments[result.arguments.length - 1];
 				var methodBody = lastArgument;
 
-				result.arguments[result.arguments.length - 1] = {
-					type: "CallExpression",
-					callee: astIdentifier('IoThunk'),
-					arguments: [{
-						type: "FunctionExpression",
-						id: null,
-						params: [{
-							type: "Identifier",
-							name: "locals"
-						}],
-						body: {
-							type: "BlockStatement",
-							body: [{
-								type: "ReturnStatement",
-								argument: methodBody
-							}]
-						}
-					}]
-				}
+				result.arguments[result.arguments.length - 1] = b.callExpression(
+					astIdentifier('IoThunk'),
+					[
+						b.functionExpression(
+							null,
+							[b.identifier("locals")],
+							b.blockStatement([b.returnStatement(methodBody)]))
+					]);
 			}
 			else if (symbolValue.value === "if") {
 
@@ -469,40 +371,14 @@ function compile (ast, receiver, localContext) {
 				// TODO handle cases where if statements have < 3 arguments
 
 				var conseq = result.arguments[2];
-				result.arguments[2] = {
-					type: "CallExpression",
-					callee: astIdentifier('IoThunk'),
-					arguments: [{
-						type: "FunctionExpression",
-						id: null,
-						params: [],
-						body: {
-							type: "BlockStatement",
-							body: [{
-								type: "ReturnStatement",
-								argument: conseq
-							}]
-						}
-					}]
-				};
+				result.arguments[2] = b.callExpression(
+					astIdentifier('IoThunk'),
+					[b.functionExpression(null, [], b.blockStatement([b.returnStatement(conseq)]))]);
 
 				var alt = result.arguments[3];
-				result.arguments[3] = {
-					type: "CallExpression",
-					callee: astIdentifier('IoThunk'),
-					arguments: [{
-						type: "FunctionExpression",
-						id: null,
-						params: [],
-						body: {
-							type: "BlockStatement",
-							body: [{
-								type: "ReturnStatement",
-								argument: alt
-							}]
-						}
-					}]
-				};
+				result.arguments[3] = b.callExpression(
+					astIdentifier('IoThunk'),
+					[b.functionExpression(null, [], b.blockStatement([b.returnStatement(alt)]))]);
 			}
 		}
 	} else {
@@ -512,22 +388,11 @@ function compile (ast, receiver, localContext) {
 	return result;
 }
 
-function astIdentifier (id) {//, loc) {
-	return {
-	    // "loc": loc,
-	    "type": "MemberExpression",
-	    "computed": false,
-	    "object": {
-	        "type": "Identifier",
-	    	// "loc": loc,
-	        "name": options.runtimeLib
-	    },
-	    "property": {
-	    	// "loc": loc,
-	        "type": "Identifier",
-	        "name": id
-	    }
-	};
+function astIdentifier (id) {
+	return b.memberExpression(
+		b.identifier(options.runtimeLib),
+		b.identifier(id),
+		false);
 }
 
 module.exports = {
