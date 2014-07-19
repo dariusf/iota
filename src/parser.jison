@@ -9,8 +9,8 @@
 %%
 
 [ \t]+                                  {} /* whitespace */
-(\#|\/\/)[^\r\n]*                       {} /* single line */
-\/\*([\u0000-\uffff]*?)\*\/             {} /* multiline */
+(\#|\/\/)[^\r\n]*                       {} /* single-line comments */
+\/\*([\u0000-\uffff]*?)\*\/             {} /* multiline comments */
 
 \b[0-9]+("."[0-9]+)?\b                  return 'NUMBER'
 [^()\[\]{}",;\s]+                       return 'IDENTIFIER'
@@ -35,21 +35,14 @@
 
 /lex
 
+%{
+    // This is done in place of setting yy because the latter wouldn't work.
+    var ioAST = require('./ast');
+%}
+
 %start program
 
 %%
-
-    /*
-
-        Informally,
-
-        exp        ::= { message | terminator }
-        message    ::= symbol [arguments]
-        arguments  ::= "(" [exp [ { "," exp } ]] ")"
-        symbol     ::= identifier | number | string
-        terminator ::= "\n" | ";"
-
-    */
 
 program
     : looselyTerminatedExpr EOF
@@ -72,9 +65,9 @@ exprs
 
 expr
     : expr message
-        {$1.value.push({type: 'message', value: $2}); $$ = $1;}
+        {$1.value.push(new ioAST.Message($2)); $$ = $1;}
     | message
-        {$$ = {type: 'chain', value: [{type: 'message', value: $1}]};}
+        {$$ = new ioAST.Chain([new ioAST.Message($1)]);}
     | '(' expr ')'
         {$$ = $2;}
     ;
@@ -82,21 +75,11 @@ expr
 message
     : symbol
         {
-            $$ = {
-                type: 'symbol',
-                value: $1,
-                arguments: [],
-                loc: {start: {line: @$.first_line, column: @$.first_column}, end: {line: @$.last_line, column: @$.last_column}}
-            };
+            $$ = new ioAST.Symbol($1, []);
         }
     | symbol arguments
         {
-            $$ = {
-                type: 'symbol',
-                value: $1,
-                arguments: $2,
-                loc: {start: {line: @$.first_line, column: @$.first_column}, end: {line: @$.last_line, column: @$.last_column}}
-            };
+            $$ = new ioAST.Symbol($1, $2);
         }
     ;
 
@@ -128,11 +111,11 @@ argumentList
 
 symbol
     : IDENTIFIER
-        {$$ = {type: 'identifier', value: $1};}
+        {$$ = new ioAST.Literal('identifier', $1);}
     | NUMBER
-        {$$ = {type: 'number', value: $1};}
+        {$$ = new ioAST.Literal('number', $1);}
     | string
-        {$$ = {type: 'string', value: $1};}
+        {$$ = new ioAST.Literal('string', $1);}
     ;
 
 string
