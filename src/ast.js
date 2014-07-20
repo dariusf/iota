@@ -36,11 +36,14 @@ function Message (symbol) {
 	// this.arguments = arguments;
 	this.value = symbol;
 }
-Message.prototype.getSymbol = function () {
-	return this.symbol;
+Message.prototype.getSymbolValue = function () {
+	return this.symbol.getValue();
+};
+Message.prototype.getSymbolType = function () {
+	return this.symbol.getType();
 };
 Message.prototype.getArguments = function () {
-	return this.arguments;
+	return this.symbol.getArguments();
 };
 
 // A symbol is anything that may serve as a literal value:
@@ -64,6 +67,9 @@ Symbol.prototype.getType = function () {
 }
 Symbol.prototype.getValue = function () {
 	return this.value;
+}
+Symbol.prototype.getArguments = function () {
+	return this.arguments;
 }
 
 function Literal (type, value) {

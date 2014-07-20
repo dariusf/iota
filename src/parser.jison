@@ -65,7 +65,7 @@ exprs
 
 expr
     : expr message
-        {$1.value.push(new ioAST.Message($2)); $$ = $1;}
+        {$1.getMessages().push(new ioAST.Message($2)); $$ = $1;}
     | message
         {$$ = new ioAST.Chain([new ioAST.Message($1)]);}
     | '(' expr ')'
