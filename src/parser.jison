@@ -37,7 +37,7 @@
 
 %{
     // This is done in place of setting yy because the latter wouldn't work.
-    var ioAST = require('./ast');
+    var ast = require('./ast');
 %}
 
 %start program
@@ -65,9 +65,9 @@ exprs
 
 expr
     : expr message
-        {$1.getMessages().push(new ioAST.Message($2)); $$ = $1;}
+        {$1.getMessages().push(new ast.Message($2)); $$ = $1;}
     | message
-        {$$ = new ioAST.Chain([new ioAST.Message($1)]);}
+        {$$ = new ast.Chain([new ast.Message($1)]);}
     | '(' expr ')'
         {$$ = $2;}
     ;
@@ -75,11 +75,11 @@ expr
 message
     : symbol
         {
-            $$ = new ioAST.Symbol($1, []);
+            $$ = new ast.Symbol($1, []);
         }
     | symbol arguments
         {
-            $$ = new ioAST.Symbol($1, $2);
+            $$ = new ast.Symbol($1, $2);
         }
     ;
 
@@ -111,11 +111,11 @@ argumentList
 
 symbol
     : IDENTIFIER
-        {$$ = new ioAST.Literal('identifier', $1);}
+        {$$ = new ast.Literal('identifier', $1);}
     | NUMBER
-        {$$ = new ioAST.Literal('number', $1);}
+        {$$ = new ast.Literal('number', $1);}
     | string
-        {$$ = new ioAST.Literal('string', $1);}
+        {$$ = new ast.Literal('string', $1);}
     ;
 
 string
