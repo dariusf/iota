@@ -6,6 +6,7 @@ var b = astTypes.builders;
 
 var parser = require('./parser');
 var pratt = require('./pratt');
+var ast = require('./ast');
 
 var options = {};
 
@@ -19,9 +20,10 @@ function setOptions (userOptions) {
 
 function applyMacros (ast) {
 
-	// An AST is a list of chains
-	// A chain is a list of messages
-	// A message can have arguments which are messages or chains
+	// A sequence is a list of chains -- a b; c d; e
+	// A chain is a list of messages -- a b c
+	// A message's arguments are a list of sequences -- a b; c d, e f; g h
+	// An AST is a sequence
 
 	infixOperatorMacro(ast);
 	assignmentOperatorMacro(ast);
@@ -29,34 +31,35 @@ function applyMacros (ast) {
 	return ast;
 }
 
-function findChainsInAST (nodelist) {
+function findChainsInSequence (sequence) {
 
-	// Performs a post-order traversal of an AST and returns
-	// a list of references to all chain objects
+	// Performs a post-order traversal of an AST (represented by
+	// a list of nodes) and returns a list of references to
+	// all chain objects
 
 	var allChains = [];
-	function helper (nodelist) {
-		nodelist.forEach(function (node) {
-			if (node.type === 'chain') {
-				node.value.forEach(function (message) {
-					message.value.arguments.forEach(function (arg) {
-						helper(arg);
+	function find (sequence) {
+		sequence.forEach(function (chain) {
+			if (chain instanceof ast.Chain) {
+				chain.getMessages().forEach(function (message) {
+					message.getArguments().forEach(function (arg) {
+						find(arg);
 					});
 				});
-				allChains.push(node);
+				allChains.push(chain);
 			}
 		});
 	}
-	helper(nodelist);
+	find(sequence);
 	return allChains;
 }
 
-function assignmentOperatorMacro (ast) {
+function assignmentOperatorMacro (astSequence) {
 
 	// Rewrites messages containing assignment operators
 	// with setSlot messages
 
-	var chains = findChainsInAST(ast);
+	var chains = findChainsInSequence(astSequence);
 
 	while (chains.length > 0) {
 		var chain = chains.pop();
@@ -148,12 +151,12 @@ function assignmentOperatorMacro (ast) {
 	}
 }
 
-function infixOperatorMacro (ast) {
+function infixOperatorMacro (astSequence) {
 
 	// Rearranges all chains containing operators into properly
 	// nested messages based on precedence
 
-	var chains = findChainsInAST(ast).filter(function (chain) {
+	var chains = findChainsInSequence(astSequence).filter(function (chain) {
 
 		// Skip chains that cannot possibly contain operators
 		if (chain.value.length <= 1) return false;

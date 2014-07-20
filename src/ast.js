@@ -37,13 +37,13 @@ function Message (symbol) {
 	this.value = symbol;
 }
 Message.prototype.getSymbolValue = function () {
-	return this.symbol.getValue();
+	return this.value.getLiteralValue();
 };
 Message.prototype.getSymbolType = function () {
-	return this.symbol.getType();
+	return this.value.getLiteralType();
 };
 Message.prototype.getArguments = function () {
-	return this.symbol.getArguments();
+	return this.value.getArguments();
 };
 
 // A symbol is anything that may serve as a literal value:
@@ -62,11 +62,11 @@ function Symbol (literal, arguments) {
 	this.value = literal;
 	this.arguments = arguments;
 }
-Symbol.prototype.getType = function () {
-	return this.type;
+Symbol.prototype.getLiteralType = function () {
+	return this.value.getValue();
 }
-Symbol.prototype.getValue = function () {
-	return this.value;
+Symbol.prototype.getLiteralValue = function () {
+	return this.value.getValue();
 }
 Symbol.prototype.getArguments = function () {
 	return this.arguments;
@@ -77,6 +77,12 @@ function Literal (type, value) {
 	this.type = type;
 	this.value = value;
 }
+Literal.prototype.getType = function () {
+	return this.type;
+};
+Literal.prototype.getValue = function () {
+	return this.value;
+};
 
 module.exports = {
 	Chain: Chain,
