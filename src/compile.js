@@ -152,12 +152,11 @@ function infixOperatorMacro (astSequence) {
 
 function parse (code) {
 
-	var ast = parser.parse(code);
+	var astSequence = parser.parse(code);
 
-	ast = applyMacros(ast);
+	astSequence = applyMacros(astSequence);
 
-	var generated = [];
-	ast.forEach(function (chain) {
+	var generated = astSequence.map(function (chain) {
 
 		var proxy = b.callExpression(
 			b.memberExpression(
@@ -166,14 +165,12 @@ function parse (code) {
 				false),
 			[b.identifier(options.self)])
 
-		chain = compile(chain,
-			options.useProxy ? proxy : astIdentifier('Lobby'),
-			options.useProxy ? proxy : astIdentifier('Lobby'));
-		generated.push(chain);
+		var topLevelContext = options.useProxy ? proxy : astIdentifier('Lobby');
+
+		return compile(chain, topLevelContext, topLevelContext);
 	});
 	
-	generated = b.program(
-		generated.map(b.expressionStatement));
+	generated = b.program(generated.map(b.expressionStatement));
 
 	if (options.wrapWithFunction) {
 		generated.body[generated.body.length-1] = implicitReturnStatement(generated.body[generated.body.length-1]);
@@ -189,15 +186,14 @@ function parseAndEmit (code) {
 
 function wrapInFunction (program) {
 
-	var bodyBlockStatement = b.blockStatement(
-		[
-			b.variableDeclaration("var", [
-				b.variableDeclarator(
-					b.identifier(options.self),
-					b.logicalExpression(
-						"||",
-						b.thisExpression(),
-						b.objectExpression([])))])
+	var bodyBlockStatement = b.blockStatement([
+		b.variableDeclaration("var", [
+			b.variableDeclarator(
+				b.identifier(options.self),
+				b.logicalExpression(
+					"||",
+					b.thisExpression(),
+					b.objectExpression([])))])
 		].concat(program.body));
 
 	var propertyAccess = options.functionName.indexOf('.') !== -1;
@@ -228,12 +224,6 @@ function implicitReturnStatement(expressionStatement) {
 				false),
 			[expr]);
 	}
-
-	// var program = ast;
-	// var wrapperFunction = program.body[0];
-	// var blockStatement = wrapperFunction.body;
-	// var lastExpressionStatement = blockStatement.body[blockStatement.body.length - 1];
-	// blockStatement.body[blockStatement.body.length - 1] = ;
 	return b.returnStatement(unwrap(expressionStatement.expression));
 }
 
@@ -263,25 +253,26 @@ function getEnclosingRange (exprlist) {
 	return null;
 }
 
-function compile (ast, receiver, localContext) {
+function compile (node, receiver, localContext) {
 	var result = {};
 
-	if (ast.type === 'chain') {
+	if (ast.isChain(node)) {
 		//  A chain is a series of left-associative messages
-		var chain = ast.value;
-		var current;
+		var chain = node;
+		var messages = chain.getMessages();
 
-		for (var i=0; i<chain.length; i++) {
+		var current;
+		messages.forEach(function (message) {
 			// The receiver of a message in a chain is the preceding one
-			current = chain[i];
-			current = compile(current, receiver, localContext);
+			current = compile(message, receiver, localContext);
 			receiver = current;
-		}
+		});
 		return current;
 	}
-	else if (ast.type === 'message') {
+	else if (ast.isMessage(node)) {
 		// The symbol is the name of the message
-		var symbol = ast.value;
+		var message = node;
+		var symbol = node.value;
 
 		if (symbol.value.type === 'number') {
 			result = b.callExpression(
@@ -360,7 +351,7 @@ function compile (ast, receiver, localContext) {
 			}
 		}
 	} else {
-		throw new Error('CompileError: unrecognized AST type: ' + ast.type);
+		throw new Error('CompileError: unrecognized AST type: ' + node.type);
 	}
 
 	return result;
