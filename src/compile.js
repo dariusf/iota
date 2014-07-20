@@ -160,12 +160,12 @@ function parse (code) {
 
 		var proxy = b.callExpression(
 			b.memberExpression(
-				astIdentifier("Proxy"),
+				libraryIdentifier("Proxy"),
 				b.identifier("set"),
 				false),
 			[b.identifier(options.self)])
 
-		var topLevelContext = options.useProxy ? proxy : astIdentifier('Lobby');
+		var topLevelContext = options.useProxy ? proxy : libraryIdentifier('Lobby');
 
 		return compile(chain, topLevelContext, topLevelContext);
 	});
@@ -270,53 +270,55 @@ function compile (node, receiver, localContext) {
 		return current;
 	}
 	else if (ast.isMessage(node)) {
-		// The symbol is the name of the message
 		var message = node;
-		var symbol = node.value;
+		var symbolValue = message.getSymbolValue();
+		var symbolType = message.getSymbolType();
 
-		if (symbol.value.type === 'number') {
+		if (symbolType === 'number') {
 			result = b.callExpression(
-				astIdentifier('IoNumberWrapper'),
-				[b.literal(+symbol.value.value)]);
+				libraryIdentifier('IoNumberWrapper'),
+				[b.literal(+symbolValue)]);
 		}
-		else if (symbol.value.type === 'string') {
+		else if (symbolType === 'string') {
 			result = b.callExpression(
-				astIdentifier('IoStringWrapper'),
-				[b.literal(symbol.value.value)]);
+				libraryIdentifier('IoStringWrapper'),
+				[b.literal(symbolValue)]);
 		}
-		else if (symbol.value.type === 'identifier') {
-			var symbolValue = {type: "Literal", value: symbol.value.value};
-	
-			// a.b(args);
+		else if (symbolType === 'identifier') {
+			var jsMessageName = new b.literal(symbolValue);
+
+			// Build the JS expression _io.receiver.send(...args)
 			result = b.callExpression(
 				b.memberExpression(receiver, b.identifier("send"), false),
-				[symbolValue].concat(symbol.arguments.map(function (arg) {
-					 // arg is a list of exprs delimted by ;
+				[jsMessageName].concat(message.getArguments().map(function (arg) {
+					 // arg is a sequence -- a list of chains of messages.
+					 // It gets turned into a ,-delimited JS expression.
 					var result = b.sequenceExpression(
 						arg.map(function (realarg) {
                             return compile(realarg, localContext, localContext);
                         }));
-                    // var loc = getEnclosingRange(result.expressions);
-                    // if (loc !== null) result.loc = loc;
                     return result;
 				})));
 
-			if (symbolValue.value === "method") {
+			// If the message is a special form, rewrite the resulting JS syntax tree
+			if (symbolValue === "method") {
 
-				result.arguments = [symbolValue].concat(symbol.arguments.map(function (arg) {
+				// Replace the generated arguments
+				result.arguments = [jsMessageName].concat(message.getArguments().map(function (arg) {
 					// Arguments will have the locals object as context
-					// arg is also a list of expressions here
+					// arg is a sequence here also
                     return b.sequenceExpression(arg.map(function (realarg) {
-						return compile(realarg, {type: "Identifier", name: "locals"}, {type: "Identifier", name: "locals"});
+						return compile(realarg, b.identifier("locals"), b.identifier("locals"));
                     }));
 				}));
 
-				// Turn all arguments but the last to strings instead;
+				// Turn all arguments but the last and first to strings;
 				// they will be sent as messages to the locals object
 
 				for (var i = 1; i < result.arguments.length - 1; i++) {
 					// Each argument is a SequenceExpression
-					// Grab the last expression in each sequence and turn it into a string
+					// Grab the last expression in each sequence; it will be of the form locals.send('messageName')
+					// Extract the string 'messageName' and replace the argument with it
 					result.arguments[i] = result.arguments[i].expressions[result.arguments[i].expressions.length-1].arguments[0];
 				}
 
@@ -326,7 +328,7 @@ function compile (node, receiver, localContext) {
 				var methodBody = lastArgument;
 
 				result.arguments[result.arguments.length - 1] = b.callExpression(
-					astIdentifier('IoThunk'),
+					libraryIdentifier('IoThunk'),
 					[
 						b.functionExpression(
 							null,
@@ -334,30 +336,30 @@ function compile (node, receiver, localContext) {
 							b.blockStatement([b.returnStatement(methodBody)]))
 					]);
 			}
-			else if (symbolValue.value === "if") {
+			else if (symbolValue === "if") {
 
 				// Convert last two arguments into thunks
 				// TODO handle cases where if statements have < 3 arguments
 
 				var conseq = result.arguments[2];
 				result.arguments[2] = b.callExpression(
-					astIdentifier('IoThunk'),
+					libraryIdentifier('IoThunk'),
 					[b.functionExpression(null, [], b.blockStatement([b.returnStatement(conseq)]))]);
 
 				var alt = result.arguments[3];
 				result.arguments[3] = b.callExpression(
-					astIdentifier('IoThunk'),
+					libraryIdentifier('IoThunk'),
 					[b.functionExpression(null, [], b.blockStatement([b.returnStatement(alt)]))]);
 			}
 		}
 	} else {
-		throw new Error('CompileError: unrecognized AST type: ' + node.type);
+		console.assert(false, 'Unrecognized symbol type: ' + symbolType);
 	}
 
 	return result;
 }
 
-function astIdentifier (id) {
+function libraryIdentifier (id) {
 	return b.memberExpression(
 		b.identifier(options.runtimeLib),
 		b.identifier(id),

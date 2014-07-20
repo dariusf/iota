@@ -54,7 +54,7 @@ function Symbol (literal, arguments) {
 	this.arguments = arguments;
 }
 Symbol.prototype.getLiteralType = function () {
-	return this.value.getValue();
+	return this.value.getType();
 }
 Symbol.prototype.getLiteralValue = function () {
 	return this.value.getValue();
