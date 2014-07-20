@@ -63,11 +63,11 @@ function assignmentOperatorMacro (astSequence) {
 	while (chains.length > 0) {
 		var chain = chains.pop();
 
-		for (var i=0; i<chain.value.length; i++) {
-			var message = chain.value[i];
+		for (var i=0; i<chain.getMessages().length; i++) {
+			var message = chain.getMessages()[i];
 
 			// Find an assignment operator
-			if (message.value.value.value !== ":=") continue;
+			if (message.getSymbolValue() !== ":=") continue;
 
 			// Pick the previous two elements in the chain.
 			// They are the target and the slot on the target that
@@ -86,61 +86,37 @@ function assignmentOperatorMacro (astSequence) {
 				// TODO: even in method bodies! this has to be
 				// done during compilation when scope is known
 
-				target = {
-					type: 'message',
-					value: {
-						type: 'symbol',
-						value: {
-							type: 'identifier',
-							value: 'Lobby'
-						},
-						arguments: []
-					}
-				};
-				slotName = chain.value[0];
+				target = new ast.Message(new ast.Symbol(new ast.Literal('identifier', 'Lobby'), []));
+				slotName = chain.getMessages()[0];
 			} else {
 				// a b := c
-				target = chain.value[i-2];
-				slotName = chain.value[i-1];
+				target = chain.getMessages()[i-2];
+				slotName = chain.getMessages()[i-1];
 			}
 
-			// rewrite the chain
+			// Rewrite the chain
 
-			// var current = chain.value[i];
-			// var prevtwo = chain.value.slice(Math.max(i-2,0), i);
-			var beforethose = chain.value.slice(0, Math.max(i-2, 0));
-			var after = chain.value.slice(i+1, chain.value.length);
+			// var current = chain.getMessages()[i];
+			// var prevTwo = chain.getMessages().slice(Math.max(i-2,0), i);
+			var beforeThose = chain.getMessages().slice(0, Math.max(i-2, 0));
+			var after = chain.getMessages().slice(i+1, chain.getMessages().length);
 
-			var rhs = {type: 'chain', value: after};
-			var message = {
-				type: 'chain',
-				value: [{
-					type: 'message',
-					value: {
-						type: 'symbol',
-						value: {
-							type: 'string',
-							value: slotName.value.value.value
-						},
-						arguments: []
-					}
-				}]
-			};
-			var setSlot = {
-				type: 'message',
-				value: {
-					type: 'symbol',
-					value: {
-						type: 'identifier',
-						value: 'setSlot'
-					},
-					arguments: [[message], [rhs]]
-				}
-			};
+			var rhs = new ast.Chain(after);
+			var assignmentSlot = new ast.Chain([
+				new ast.Message(
+					new ast.Symbol(
+						new ast.Literal('string', slotName.getSymbolValue()), [])
+					)]);
 
-			chain.value = beforethose.concat([target, setSlot]);
+			var setSlot = new ast.Message(
+				new ast.Symbol(
+					new ast.Literal('identifier', 'setSlot'),
+					[[assignmentSlot], [rhs]]
+				));
 
-			// Recurse on the newly created chain in case it contains
+			chain.setMessages(beforeThose.concat([target, setSlot]));
+
+			// Continue on the newly created chain in case it contains
 			// more operators
 			chains.push(rhs);
 
