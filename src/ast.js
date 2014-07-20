@@ -16,6 +16,9 @@ function Chain (messages) {
 Chain.prototype.getMessages = function () {
 	return this.value;
 };
+Chain.prototype.setMessages = function (messages) {
+	this.value = messages;
+};
 
 // A message is a symbol plus arguments
 

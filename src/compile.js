@@ -33,9 +33,8 @@ function applyMacros (ast) {
 
 function findChainsInSequence (sequence) {
 
-	// Performs a post-order traversal of an AST (represented by
-	// a list of nodes) and returns a list of references to
-	// all chain objects
+	// Performs a post-order traversal of a sequence (usually the AST)
+	// and returns a list of references to all chain objects
 
 	var allChains = [];
 	function find (sequence) {
@@ -159,19 +158,19 @@ function infixOperatorMacro (astSequence) {
 	var chains = findChainsInSequence(astSequence).filter(function (chain) {
 
 		// Skip chains that cannot possibly contain operators
-		if (chain.value.length <= 1) return false;
+		if (chain.getMessages().length <= 1) return false;
 
 		// A chain will be processed if it contains at least one operator
-		// message with no arguments (meaning it has not been processed yet)
-		var hasAnOperator = chain.value.filter(function (message) {
-			return pratt.isOperator(message.value.value.value) && message.value.arguments.length === 0;
+		// message with no arguments (meaning that message hasn't been processed yet)
+		var hasAnOperator = chain.getMessages().filter(function (message) {
+			return pratt.isOperator(message.getSymbolValue()) && message.getArguments().length === 0;
 		}).length > 0;
 
 		return hasAnOperator;
 	});
 
 	chains.forEach(function (chain) {
-		chain.value = pratt.parse(chain).value;
+		chain.setMessages(pratt.parse(chain).getMessages());
 	});
 }
 
