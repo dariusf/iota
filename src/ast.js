@@ -1,5 +1,4 @@
 
-
 // var Type = Object.freeze({
 // 	"String": {},
 // 	"Number": {},
@@ -7,16 +6,11 @@
 // });
 
 // A chain is a left-associative application of zero or more messages
-
 function Chain (messages) {
 	// Preconditions
-	console.assert(Array.isArray(messages));
-	messages.forEach(function (msg) {
-		console.assert(msg.type === 'message');
-		// console.assert(msg instanceof Message);
-	});
+	assertArray(messages, assertMessage);
 
-	this.type = 'chain'; // get rid of this eventually
+	this.type = 'chain'; // TODO remove eventually
 	this.value = messages;
 }
 Chain.prototype.getMessages = function () {
@@ -27,13 +21,10 @@ Chain.prototype.getMessages = function () {
 
 function Message (symbol) {
 	// Preconditions
-	console.assert(symbol instanceof Symbol);
-	// console.assert(Array.isArray(arguments));
+	assertSymbol(symbol);
 	// TODO arguments are either messages or chains?
 
-	this.type = 'message'; // get rid of this eventually
-	// this.symbol = symbol;
-	// this.arguments = arguments;
+	this.type = 'message'; // TODO remove eventually
 	this.value = symbol;
 }
 Message.prototype.getSymbolValue = function () {
@@ -51,14 +42,11 @@ Message.prototype.getArguments = function () {
 
 function Symbol (literal, arguments) {
 	// Preconditions
-	// console.assert(type === Type.String || type === Type.Number || type === Type.Identifier);
-	// console.assert(type === 'string' || type === 'number' || type === 'identifier');
-	console.assert(literal instanceof Literal);
-	console.assert(Array.isArray(arguments));
-	// console.assert(Array.isArray(arguments));
+	assertLiteral(literal);
+	assertArray(arguments);
 	// TODO arguments are either messages or chains?
 
-	this.type = 'symbol';
+	this.type = 'symbol'; // TODO remove eventually
 	this.value = literal;
 	this.arguments = arguments;
 }
@@ -84,9 +72,52 @@ Literal.prototype.getValue = function () {
 	return this.value;
 };
 
+function isChain (node) {
+	return node instanceof Chain;
+}
+function isMessage (node) {
+	return node instanceof Message;
+}
+function isSymbol (node) {
+	return node instanceof Symbol;
+}
+function isLiteral (node) {
+	return node instanceof Literal;
+}
+
+function assertChain (node) {
+	console.assert(isChain(node), node + ' is not a Chain');
+}
+function assertMessage (node) {
+	console.assert(isMessage(node), node + ' is not a Message');
+}
+function assertSymbol (node) {
+	console.assert(isSymbol(node), node + ' is not a Symbol');
+}
+function assertLiteral (node) {
+	console.assert(isLiteral(node), node + ' is not a Literal');
+}
+function assertArray (node, pred) {
+	console.assert(Array.isArray(node), node + ' is not a array');
+	if (pred) {
+		node.forEach(pred);
+	}
+}
+
 module.exports = {
 	Chain: Chain,
 	Message: Message,
 	Symbol: Symbol,
 	Literal: Literal,
+	
+	isChain: isChain,
+	isMessage: isMessage,
+	isSymbol: isSymbol,
+	isLiteral: isLiteral,
+
+	assertChain: assertChain,
+	assertMessage: assertMessage,
+	assertSymbol: assertSymbol,
+	assertLiteral: assertLiteral,
+	assertArray: assertArray,
 };
