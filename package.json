@@ -4,13 +4,13 @@
   "description": "Io-to-JavaScript compiler",
   "main": "iota.js",
   "dependencies": {
-    "ast-types": "^0.4.5",
-    "escodegen": "~1.3.2"
+    "ast-types": "^0.9.11",
+    "escodegen": "^1.8.1"
   },
   "devDependencies": {
-    "browserify": "~4.1.2",
-    "jasmine-node": "^1.14.3",
-    "jison": "~0.4.13"
+    "browserify": "^14.3.0",
+    "jasmine-node": "^1.14.5",
+    "jison": "^0.4.17"
   },
   "bin": {
     "iota": "bin/iota-cli"

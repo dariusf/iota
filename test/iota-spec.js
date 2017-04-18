@@ -1,6 +1,7 @@
 
 var iota = require('../iota');
 var _io = iota.lib;
+var b = require("ast-types").builders;
 
 describe('runtime', function() {
 	it('basics', function() {
@@ -9,11 +10,7 @@ describe('runtime', function() {
 		expect(iota.eval('\n;1;//aa akkdh jkh\n;\n2 4;;')).toBe(4);
 		expect(iota.eval('\n;1;#aa akkdh jkh\n;\n3 5;;')).toBe(5);
 		expect(iota.eval('\n;1;/*aa akkdh jkh\nasds\n*/;\n3 6;;')).toBe(6);
-		expect(iota.parse('')).toEqual({
-		    "type": "Program",
-		    "body": [],
-		    loc: null
-		});
+		expect(iota.parse('')).toEqual(b.program([]));
 		expect(iota.compile('')).toBe('');
 		expect(iota.eval('')).toBe(null);
 	});
