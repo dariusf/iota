@@ -1,10 +1,8 @@
 node_modules
+build
 
 src/parser.js
 demos/browser/iota-browser.js
 demos/browser/lib.js
 iota-browser.js
 lib.js
-
-iota.sublime-project
-iota.sublime-workspace

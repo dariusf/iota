@@ -1,10 +1,20 @@
 
 JISON = ./node_modules/.bin/jison
 BROWSERIFY = ./node_modules/.bin/browserify
+BABEL = ./node_modules/.bin/babel
+FLOW = ./node_modules/.bin/flow
 
 BROWSER_DEMOS = demos/browser
 
-all: parser browser
+all: parser browser build
+
+build:
+	$(FLOW)
+	$(BABEL) src --out-dir=build
+
+test: build
+	$(FLOW)
+	npm test
 
 parser: src/parser.js
 

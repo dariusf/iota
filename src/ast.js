@@ -1,3 +1,4 @@
+// @flow
 
 // var Type = Object.freeze({
 // 	"String": {},
@@ -5,65 +6,86 @@
 // 	"Identifier": {},
 // });
 
-// A chain is a left-associative application of zero or more messages
-function Chain (messages) {
-	// Preconditions
-	assertArray(messages, assertMessage);
-
-	this.type = 'chain'; // TODO remove eventually
-	this.value = messages;
+class Expr {
 }
-Chain.prototype.getMessages = function () {
-	return this.value;
-};
-Chain.prototype.setMessages = function (messages) {
-	this.value = messages;
-};
+
+// A chain is a left-associative application of zero or
+// more messages
+class Chain extends Expr {
+
+	type: string; // TODO remove eventually
+	messages: Array<Message>;
+
+	constructor(messages: Array<Message>) {
+		super();
+		this.type = 'chain';
+		this.messages = messages;
+	}
+}
 
 // A message is a symbol plus arguments
+class Message extends Expr {
 
-function Message (symbol) {
-	// Preconditions
-	assertSymbol(symbol);
-	// TODO arguments are either messages or chains?
+	type: string; // TODO remove eventually
+	value: Symbol;
 
-	this.type = 'message'; // TODO remove eventually
-	this.value = symbol;
+	constructor(symbol: Symbol) {
+		super();
+		// Preconditions
+		assertSymbol(symbol);
+		// TODO arguments are either messages or chains?
+
+		this.type = 'message'; // TODO remove eventually
+		this.value = symbol;
+	}
+
+	getSymbolValue() {
+		return this.value.getLiteralValue();
+	}
+
+	getSymbolType() {
+		return this.value.getLiteralType();
+	}
+
+	getArguments() {
+		return this.value.getArguments();
+	}
 }
-Message.prototype.getSymbolValue = function () {
-	return this.value.getLiteralValue();
-};
-Message.prototype.getSymbolType = function () {
-	return this.value.getLiteralType();
-};
-Message.prototype.getArguments = function () {
-	return this.value.getArguments();
-};
 
 // A symbol is anything that may serve as a literal value:
 // a number, string, or idenfitier
 
-function Symbol (literal, arguments) {
-	// Preconditions
-	assertLiteral(literal);
-	assertArray(arguments);
-	// TODO arguments are either messages or chains?
+class Symbol extends Expr {
+	type: string;
+	value: Literal;
+	args: Array<Expr>;
 
-	this.type = 'symbol'; // TODO remove eventually
-	this.value = literal;
-	this.arguments = arguments;
-}
-Symbol.prototype.getLiteralType = function () {
-	return this.value.getType();
-}
-Symbol.prototype.getLiteralValue = function () {
-	return this.value.getValue();
-}
-Symbol.prototype.getArguments = function () {
-	return this.arguments;
+	constructor(literal: Literal, args: Array<Expr>) {
+		super();
+		// Preconditions
+		assertLiteral(literal);
+		assertArray(args);
+		// TODO arguments are either messages or chains?
+
+		this.type = 'symbol'; // TODO remove eventually
+		this.value = literal;
+		this.args = args;
+	}
+
+	getLiteralType() {
+		return this.value.getType();
+	}
+
+	getLiteralValue() {
+		return this.value.getValue();
+	}
+
+	getArguments() {
+		return this.args;
+	}
 }
 
-function Literal (type, value) {
+function Literal (type: string, value: string | number) {
 	console.assert(type === 'string' || type === 'number' || type === 'identifier')
 	this.type = type;
 	this.value = value;
@@ -75,33 +97,37 @@ Literal.prototype.getValue = function () {
 	return this.value;
 };
 
-function isChain (node) {
+function isChain (node: Chain) {
 	return node instanceof Chain;
 }
-function isMessage (node) {
+function isMessage (node: Message) {
 	return node instanceof Message;
 }
-function isSymbol (node) {
+function isSymbol (node: Symbol) {
 	return node instanceof Symbol;
 }
-function isLiteral (node) {
+function isLiteral (node: Literal) {
 	return node instanceof Literal;
 }
 
-function assertChain (node) {
-	console.assert(isChain(node), node + ' is not a Chain');
+function assertChain (node: Chain) {
+	console.assert(isChain(node), node.toString() + ' is not a Chain');
 }
-function assertMessage (node) {
-	console.assert(isMessage(node), node + ' is not a Message');
+
+function assertMessage (node: Message) {
+	console.assert(isMessage(node), node.toString() + ' is not a Message');
 }
-function assertSymbol (node) {
-	console.assert(isSymbol(node), node + ' is not a Symbol');
+
+function assertSymbol (node: Symbol) {
+	console.assert(isSymbol(node), node.toString() + ' is not a Symbol');
 }
-function assertLiteral (node) {
-	console.assert(isLiteral(node), node + ' is not a Literal');
+
+function assertLiteral (node: Literal) {
+	console.assert(isLiteral(node), node.toString() + ' is not a Literal');
 }
-function assertArray (node, pred) {
-	console.assert(Array.isArray(node), node + ' is not a array');
+
+function assertArray (node: Array<Expr>, pred?: Object => bool) {
+	console.assert(Array.isArray(node), node.toString() + ' is not a array');
 	if (pred) {
 		node.forEach(pred);
 	}

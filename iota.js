@@ -1,6 +1,6 @@
 
-var compile = require('./src/compile');
-var lib = require('./src/lib');
+var compile = require('./build/compile');
+var lib = require('./build/lib');
 var _io = lib;
 
 function compileCode(input, options) {

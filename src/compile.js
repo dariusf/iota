@@ -40,7 +40,7 @@ function findChainsInSequence (sequence) {
 	function find (sequence) {
 		sequence.forEach(function (chain) {
 			if (chain instanceof ast.Chain) {
-				chain.getMessages().forEach(function (message) {
+				chain.messages.forEach(function (message) {
 					message.getArguments().forEach(function (arg) {
 						find(arg);
 					});
@@ -63,8 +63,8 @@ function assignmentOperatorMacro (astSequence) {
 	while (chains.length > 0) {
 		var chain = chains.pop();
 
-		for (var i=0; i<chain.getMessages().length; i++) {
-			var message = chain.getMessages()[i];
+		for (var i=0; i<chain.messages.length; i++) {
+			var message = chain.messages[i];
 
 			// Find an assignment operator
 			if (message.getSymbolValue() !== ":=") continue;
@@ -87,19 +87,19 @@ function assignmentOperatorMacro (astSequence) {
 				// done during compilation when scope is known
 
 				target = new ast.Message(new ast.Symbol(new ast.Literal('identifier', 'Lobby'), []));
-				slotName = chain.getMessages()[0];
+				slotName = chain.messages[0];
 			} else {
 				// a b := c
-				target = chain.getMessages()[i-2];
-				slotName = chain.getMessages()[i-1];
+				target = chain.messages[i-2];
+				slotName = chain.messages[i-1];
 			}
 
 			// Rewrite the chain
 
-			// var current = chain.getMessages()[i];
-			// var prevTwo = chain.getMessages().slice(Math.max(i-2,0), i);
-			var beforeThose = chain.getMessages().slice(0, Math.max(i-2, 0));
-			var after = chain.getMessages().slice(i+1, chain.getMessages().length);
+			// var current = chain.messages[i];
+			// var prevTwo = chain.messages.slice(Math.max(i-2,0), i);
+			var beforeThose = chain.messages.slice(0, Math.max(i-2, 0));
+			var after = chain.messages.slice(i+1, chain.messages.length);
 
 			var rhs = new ast.Chain(after);
 			var assignmentSlot = new ast.Chain([
@@ -114,7 +114,7 @@ function assignmentOperatorMacro (astSequence) {
 					[[assignmentSlot], [rhs]]
 				));
 
-			chain.setMessages(beforeThose.concat([target, setSlot]));
+			chain.messages = beforeThose.concat([target, setSlot]);
 
 			// Continue on the newly created chain in case it contains
 			// more operators
@@ -134,11 +134,11 @@ function infixOperatorMacro (astSequence) {
 	var chains = findChainsInSequence(astSequence).filter(function (chain) {
 
 		// Skip chains that cannot possibly contain operators
-		if (chain.getMessages().length <= 1) return false;
+		if (chain.messages.length <= 1) return false;
 
 		// A chain will be processed if it contains at least one operator
 		// message with no arguments (meaning that message hasn't been processed yet)
-		var hasAnOperator = chain.getMessages().filter(function (message) {
+		var hasAnOperator = chain.messages.filter(function (message) {
 			return pratt.isOperator(message.getSymbolValue()) && message.getArguments().length === 0;
 		}).length > 0;
 
@@ -146,7 +146,7 @@ function infixOperatorMacro (astSequence) {
 	});
 
 	chains.forEach(function (chain) {
-		chain.setMessages(pratt.parse(chain).getMessages());
+		chain.messages = pratt.parse(chain).messages;
 	});
 }
 
@@ -259,7 +259,7 @@ function compile (node, receiver, localContext) {
 	if (ast.isChain(node)) {
 		//  A chain is a series of left-associative messages
 		var chain = node;
-		var messages = chain.getMessages();
+		var messages = chain.messages;
 
 		var current;
 		messages.forEach(function (message) {

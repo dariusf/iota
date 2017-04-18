@@ -127,7 +127,7 @@ module.exports = {
 
 		// Initialize parser
 		ptr = 0;
-		input = chain.getMessages().slice();
+		input = chain.messages.slice();
 		input.push({type: 'EOF'});
 
 		return parseExpression(0);

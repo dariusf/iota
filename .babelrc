@@ -1,0 +1,4 @@
+{
+  "presets": ["env", "flow"],
+  "plugins": ["transform-async-generator-functions"]
+}
