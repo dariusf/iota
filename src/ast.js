@@ -85,8 +85,7 @@ class Symbol extends Expr {
 	}
 }
 
-function Literal (type: string, value: string | number) {
-	console.assert(type === 'string' || type === 'number' || type === 'identifier')
+function Literal (type: 'string' | 'number' | 'identifier', value: string | number) {
 	this.type = type;
 	this.value = value;
 }

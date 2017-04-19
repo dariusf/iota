@@ -25,7 +25,7 @@ describe('runtime', function() {
 		expect(iota.eval('true and (1 == 2)')).toBe(false);
 		expect(iota.eval('Person := Object clone; Person == Person')).toBe(true);
 	});
-	it('object and messages', function() {
+	it('objects and messages', function() {
 		expect(iota.eval('Lobby setSlot("Person", Object clone); Person hello := 1; Person hello')).toBe(1);
 		expect(iota.eval('Person talk := method(name, name charAt(2)); Person talk("billy")')).toEqual('l');
 		expect(iota.eval('Person := Object clone; Person talk := method(name); bob := Person clone; bob name := "bob"; bob talk')).toEqual('bob');

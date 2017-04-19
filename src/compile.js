@@ -1,3 +1,4 @@
+// @flow
 
 var escodegen = require('escodegen');
 var astTypes = require('ast-types');
@@ -8,14 +9,27 @@ var parser = require('./parser');
 var pratt = require('./pratt');
 var ast = require('./ast');
 
-var options = {};
+type Options = {
+	wrapWithFunction: boolean,
+	useProxy: boolean,
+	functionName: string,
+	runtimeLib: string,
+	self: string,
+};
 
-function setOptions (userOptions) {
-	options.wrapWithFunction = userOptions.wrapWithFunction || false;
-	options.useProxy = userOptions.useProxy || false;
-	options.functionName = userOptions.functionName || 'io';
-	options.runtimeLib = userOptions.runtimeLib || '_io';
-	options.self = userOptions.self || 'self';
+var options: Options = {
+	wrapWithFunction: false,
+	useProxy: false,
+	functionName: 'io',
+	runtimeLib: '_io',
+	self: 'self',
+};
+
+function setOptions (userOptions: Options) {
+	options = {
+		... options,
+		... userOptions
+	};
 }
 
 function applyMacros (ast) {
@@ -126,7 +140,7 @@ function assignmentOperatorMacro (astSequence) {
 	}
 }
 
-function infixOperatorMacro (astSequence) {
+function infixOperatorMacro(astSequence) {
 
 	// Rearranges all chains containing operators into properly
 	// nested messages based on precedence
@@ -150,7 +164,7 @@ function infixOperatorMacro (astSequence) {
 	});
 }
 
-function parse (code) {
+function parse(code: string) {
 
 	var astSequence = parser.parse(code);
 
@@ -180,7 +194,7 @@ function parse (code) {
 	return generated;
 }
 
-function parseAndEmit (code) {
+function parseAndEmit(code: string) {
 	return escodegen.generate(parse(code));
 }
 
@@ -253,7 +267,7 @@ function getEnclosingRange (exprlist) {
 	return null;
 }
 
-function compile (node, receiver, localContext) {
+function compile(node, receiver, localContext) {
 	var result = {};
 
 	if (ast.isChain(node)) {
@@ -270,92 +284,104 @@ function compile (node, receiver, localContext) {
 		return current;
 	}
 	else if (ast.isMessage(node)) {
-		var message = node;
-		var symbolValue = message.getSymbolValue();
-		var symbolType = message.getSymbolType();
-
-		if (symbolType === 'number') {
-			result = b.callExpression(
-				libraryIdentifier('IoNumberWrapper'),
-				[b.literal(+symbolValue)]);
-		}
-		else if (symbolType === 'string') {
-			result = b.callExpression(
-				libraryIdentifier('IoStringWrapper'),
-				[b.literal(symbolValue)]);
-		}
-		else if (symbolType === 'identifier') {
-			var jsMessageName = new b.literal(symbolValue);
-
-			// Build the JS expression _io.receiver.send(...args)
-			result = b.callExpression(
-				b.memberExpression(receiver, b.identifier("send"), false),
-				[jsMessageName].concat(message.getArguments().map(function (arg) {
-					 // arg is a sequence -- a list of chains of messages.
-					 // It gets turned into a ,-delimited JS expression.
-					var result = b.sequenceExpression(
-						arg.map(function (realarg) {
-                            return compile(realarg, localContext, localContext);
-                        }));
-                    return result;
-				})));
-
-			// If the message is a special form, rewrite the resulting JS syntax tree
-			if (symbolValue === "method") {
-
-				// Replace the generated arguments
-				result.arguments = [jsMessageName].concat(message.getArguments().map(function (arg) {
-					// Arguments will have the locals object as context
-					// arg is a sequence here also
-                    return b.sequenceExpression(arg.map(function (realarg) {
-						return compile(realarg, b.identifier("locals"), b.identifier("locals"));
-                    }));
-				}));
-
-				// Turn all arguments but the last and first to strings;
-				// they will be sent as messages to the locals object
-
-				for (var i = 1; i < result.arguments.length - 1; i++) {
-					// Each argument is a SequenceExpression
-					// Grab the last expression in each sequence; it will be of the form locals.send('messageName')
-					// Extract the string 'messageName' and replace the argument with it
-					result.arguments[i] = result.arguments[i].expressions[result.arguments[i].expressions.length-1].arguments[0];
-				}
-
-				// The last becomes a thunk
-
-				var lastArgument = result.arguments[result.arguments.length - 1];
-				var methodBody = lastArgument;
-
-				result.arguments[result.arguments.length - 1] = b.callExpression(
-					libraryIdentifier('IoThunk'),
-					[
-						b.functionExpression(
-							null,
-							[b.identifier("locals")],
-							b.blockStatement([b.returnStatement(methodBody)]))
-					]);
-			}
-			else if (symbolValue === "if") {
-
-				// Convert last two arguments into thunks
-				// TODO handle cases where if statements have < 3 arguments
-
-				var conseq = result.arguments[2];
-				result.arguments[2] = b.callExpression(
-					libraryIdentifier('IoThunk'),
-					[b.functionExpression(null, [], b.blockStatement([b.returnStatement(conseq)]))]);
-
-				var alt = result.arguments[3];
-				result.arguments[3] = b.callExpression(
-					libraryIdentifier('IoThunk'),
-					[b.functionExpression(null, [], b.blockStatement([b.returnStatement(alt)]))]);
-			}
-		}
+		result = compileMessage(node, receiver, localContext);
 	} else {
-		console.assert(false, 'Unrecognized symbol type: ' + symbolType);
+		console.assert(false, 'Unrecognized expression type: ' + node.type);
 	}
 
+	return result;
+}
+
+function compileMessage(node, receiver, localContext) {
+
+	var message = node;
+	var symbolValue = message.getSymbolValue();
+	var symbolType = message.getSymbolType();
+
+	let result;
+	switch (symbolType) {
+    case 'number': {
+      result = b.callExpression(
+          libraryIdentifier('IoNumberWrapper'),
+          [b.literal(+symbolValue)]);
+    }
+    break;
+    case 'string': {
+      result = b.callExpression(
+          libraryIdentifier('IoStringWrapper'),
+          [b.literal(symbolValue)]);
+    }
+    break;
+    case 'identifier': {
+      var jsMessageName = new b.literal(symbolValue);
+
+      // Build the JS expression _io.receiver.send(...args)
+      result = b.callExpression(
+          b.memberExpression(receiver, b.identifier("send"), false),
+          [jsMessageName].concat(message.getArguments().map(function (arg) {
+               // arg is a sequence -- a list of chains of messages.
+               // It gets turned into a ,-delimited JS expression.
+              var result = b.sequenceExpression(
+                  arg.map(function (realarg) {
+                      return compile(realarg, localContext, localContext);
+                  }));
+              return result;
+          })));
+
+      // If the message is a special form, rewrite the resulting JS syntax tree
+      if (symbolValue === "method") {
+
+          // Replace the generated arguments
+          result.arguments = [jsMessageName].concat(message.getArguments().map(function (arg) {
+              // Arguments will have the locals object as context
+              // arg is a sequence here also
+              return b.sequenceExpression(arg.map(function (realarg) {
+                  return compile(realarg, b.identifier("locals"), b.identifier("locals"));
+              }));
+          }));
+
+          // Turn all arguments but the last and first to strings;
+          // they will be sent as messages to the locals object
+
+          for (var i = 1; i < result.arguments.length - 1; i++) {
+              // Each argument is a SequenceExpression
+              // Grab the last expression in each sequence; it will be of the form locals.send('messageName')
+              // Extract the string 'messageName' and replace the argument with it
+              result.arguments[i] = result.arguments[i].expressions[result.arguments[i].expressions.length-1].arguments[0];
+          }
+
+          // The last becomes a thunk
+
+          var lastArgument = result.arguments[result.arguments.length - 1];
+          var methodBody = lastArgument;
+
+          result.arguments[result.arguments.length - 1] = b.callExpression(
+              libraryIdentifier('IoThunk'),
+              [
+                  b.functionExpression(
+                      null,
+                      [b.identifier("locals")],
+                      b.blockStatement([b.returnStatement(methodBody)]))
+              ]);
+      }
+      else if (symbolValue === "if") {
+
+          // Convert last two arguments into thunks
+          // TODO handle cases where if statements have < 3 arguments
+
+          var conseq = result.arguments[2];
+          result.arguments[2] = b.callExpression(
+              libraryIdentifier('IoThunk'),
+              [b.functionExpression(null, [], b.blockStatement([b.returnStatement(conseq)]))]);
+
+          var alt = result.arguments[3];
+          result.arguments[3] = b.callExpression(
+              libraryIdentifier('IoThunk'),
+              [b.functionExpression(null, [], b.blockStatement([b.returnStatement(alt)]))]);
+      }
+    }
+    break;
+	}
 	return result;
 }
 

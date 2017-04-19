@@ -2,7 +2,7 @@
 JISON = ./node_modules/.bin/jison
 BROWSERIFY = ./node_modules/.bin/browserify
 BABEL = ./node_modules/.bin/babel
-FLOW = ./node_modules/.bin/flow
+FLOW = ./node_modules/.bin/flow --color=always
 
 BROWSER_DEMOS = demos/browser
 
@@ -13,7 +13,7 @@ build:
 	$(BABEL) src --out-dir=build
 
 test: build
-	$(FLOW)
+	$(FLOW) | less -R
 	npm test
 
 parser: src/parser.js
