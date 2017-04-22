@@ -11,7 +11,7 @@ BROWSER_DEMOS = demos/browser
 all: build browser
 
 build: parser
-	# $(FLOW)
+	$(FLOW)
 	$(BABEL) src --out-dir build --source-maps true
 
 test: build

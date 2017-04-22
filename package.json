@@ -17,6 +17,7 @@
     "browserify": "^14.3.0",
     "flow-bin": "^0.44.2",
     "jasmine": "^2.5.3",
+    "jasmine-console-reporter": "^1.2.7",
     "jison": "^0.4.17"
   },
   "bin": {

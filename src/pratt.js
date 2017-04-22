@@ -1,3 +1,4 @@
+// @flow
 
 var ast = require('./ast');
 

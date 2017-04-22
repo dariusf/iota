@@ -9,8 +9,6 @@ var parser = require('./parser');
 var pratt = require('./pratt');
 var ast = require('./ast');
 
-// import { Expr } from './ast';
-
 type Options = {
 	wrapWithFunction: boolean,
 	useProxy: boolean,
@@ -24,7 +22,7 @@ type JSAST = Object;
 type AST = Array<ast.Expr>;
 
 var defaultOptions: Options = {
-    wrapWithFunction: false,
+  wrapWithFunction: false,
 	useProxy: false,
 	functionName: 'io',
 	runtimeLib: '_io',
