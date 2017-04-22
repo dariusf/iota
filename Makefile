@@ -8,7 +8,7 @@ FLOW = ./node_modules/.bin/flow --color=always
 
 BROWSER_DEMOS = demos/browser
 
-all: browser build
+all: build browser
 
 build: parser
 	# $(FLOW)
@@ -23,17 +23,14 @@ build/parser.js: src/parser.jison
 	mkdir -p build
 	$(JISON) src/parser.jison -o build/parser.js
 
-browser: build $(BROWSER_DEMOS)/iota-browser.js $(BROWSER_DEMOS)/lib.js iota-browser.js lib.js
+browser: build $(BROWSER_DEMOS)/iota-browser.js $(BROWSER_DEMOS)/lib.js
 
-$(BROWSER_DEMOS)/iota-browser.js $(BROWSER_DEMOS)/lib.js iota-browser.js lib.js: src/*.js iota.js
-	$(BROWSERIFY) -r ./iota.js:iota-compiler -o $(BROWSER_DEMOS)/iota-browser.js
-	cp src/lib.js $(BROWSER_DEMOS)/lib.js
-	cp src/lib.js .
-	cp $(BROWSER_DEMOS)/iota-browser.js .
+$(BROWSER_DEMOS)/iota-browser.js $(BROWSER_DEMOS)/lib.js: build/*.js iota.js
+	$(BROWSERIFY) -r ./iota.js:iota-compiler -o build/iota-browser.js
+	cp build/lib.js $(BROWSER_DEMOS)/lib.js
+	cp build/iota-browser.js $(BROWSER_DEMOS)/iota-browser.js
 
 clean:
-	-rm iota-browser.js
-	-rm lib.js
 	-rm $(BROWSER_DEMOS)/iota-browser.js
 	-rm $(BROWSER_DEMOS)lib.js
 	-rm -rf build
