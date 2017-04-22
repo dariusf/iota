@@ -9,6 +9,8 @@ var parser = require('./parser');
 var pratt = require('./pratt');
 var ast = require('./ast');
 
+// import { Expr } from './ast';
+
 type Options = {
 	wrapWithFunction: boolean,
 	useProxy: boolean,
@@ -17,22 +19,27 @@ type Options = {
 	self: string,
 };
 
-var options: Options = {
-	wrapWithFunction: false,
+type JSAST = Object;
+
+type AST = Array<ast.Expr>;
+
+var defaultOptions: Options = {
+    wrapWithFunction: false,
 	useProxy: false,
 	functionName: 'io',
 	runtimeLib: '_io',
 	self: 'self',
 };
 
-function setOptions (userOptions: Options) {
-	options = {
-		... options,
-		... userOptions
-	};
+function useDefaultOptions(options: Options) {
+  options = options || {};
+  return {
+    ... defaultOptions,
+    ... options
+  };
 }
 
-function applyMacros (ast) {
+function applyMacros(ast: AST) {
 
 	// A sequence is a list of chains -- a b; c d; e
 	// A chain is a list of messages -- a b c
@@ -45,14 +52,14 @@ function applyMacros (ast) {
 	return ast;
 }
 
-function findChainsInSequence (sequence) {
+function findChainsInSequence(sequence: AST) {
 
 	// Performs a post-order traversal of a sequence (usually the AST)
 	// and returns a list of references to all chain objects
 
 	var allChains = [];
-	function find (sequence) {
-		sequence.forEach(function (chain) {
+	function find (sequence: AST) {
+		sequence.forEach(function (chain: ast.Expr) {
 			if (chain instanceof ast.Chain) {
 				chain.messages.forEach(function (message) {
 					message.getArguments().forEach(function (arg) {
@@ -67,7 +74,7 @@ function findChainsInSequence (sequence) {
 	return allChains;
 }
 
-function assignmentOperatorMacro (astSequence) {
+function assignmentOperatorMacro(astSequence: AST) {
 
 	// Rewrites messages containing assignment operators
 	// with setSlot messages
@@ -140,7 +147,7 @@ function assignmentOperatorMacro (astSequence) {
 	}
 }
 
-function infixOperatorMacro(astSequence) {
+function infixOperatorMacro(astSequence: AST) {
 
 	// Rearranges all chains containing operators into properly
 	// nested messages based on precedence
@@ -164,9 +171,13 @@ function infixOperatorMacro(astSequence) {
 	});
 }
 
-function parse(code: string) {
+function parse(code: string, options: Options) {
+
+  options = useDefaultOptions(options);
 
 	var astSequence = parser.parse(code);
+
+  // console.log(astSequence);
 
 	astSequence = applyMacros(astSequence);
 
@@ -174,31 +185,31 @@ function parse(code: string) {
 
 		var proxy = b.callExpression(
 			b.memberExpression(
-				libraryIdentifier("Proxy"),
+				libraryIdentifier(options, "Proxy"),
 				b.identifier("set"),
 				false),
 			[b.identifier(options.self)])
 
-		var topLevelContext = options.useProxy ? proxy : libraryIdentifier('Lobby');
+		var topLevelContext = options.useProxy ? proxy : libraryIdentifier(options, 'Lobby');
 
-		return compile(chain, topLevelContext, topLevelContext);
+		return compile(options, chain, topLevelContext, topLevelContext);
 	});
 	
 	generated = b.program(generated.map(b.expressionStatement));
 
 	if (options.wrapWithFunction) {
-		generated.body[generated.body.length-1] = implicitReturnStatement(generated.body[generated.body.length-1]);
-		generated = wrapInFunction(generated);
+		generated.body[generated.body.length-1] = implicitReturnStatement(options, generated.body[generated.body.length-1]);
+		generated = wrapInFunction(options, generated);
 	}
 
 	return generated;
 }
 
-function parseAndEmit(code: string) {
-	return escodegen.generate(parse(code));
+function parseAndEmit(code: string, options: Options) {
+	return escodegen.generate(parse(code, useDefaultOptions(options)));
 }
 
-function wrapInFunction (program) {
+function wrapInFunction(options, program) {
 
 	var bodyBlockStatement = b.blockStatement([
 		b.variableDeclaration("var", [
@@ -228,7 +239,7 @@ function wrapInFunction (program) {
 	}
 }
 
-function implicitReturnStatement(expressionStatement) {
+function implicitReturnStatement(options, expressionStatement) {
 
 	function unwrap(expr) {
 		return b.callExpression(
@@ -241,7 +252,7 @@ function implicitReturnStatement(expressionStatement) {
 	return b.returnStatement(unwrap(expressionStatement.expression));
 }
 
-function getEnclosingRange (exprlist) {
+function getEnclosingRange(exprlist) {
 	function priority (s, c) {
 		// line number must be smaller
 		// if line number is tied, column must be smaller
@@ -267,7 +278,7 @@ function getEnclosingRange (exprlist) {
 	return null;
 }
 
-function compile(node, receiver, localContext) {
+function compile(options: Options, node, receiver: JSAST, localContext: JSAST) {
 	var result = {};
 
 	if (ast.isChain(node)) {
@@ -278,13 +289,13 @@ function compile(node, receiver, localContext) {
 		var current;
 		messages.forEach(function (message) {
 			// The receiver of a message in a chain is the preceding one
-			current = compile(message, receiver, localContext);
+			current = compile(options, message, receiver, localContext);
 			receiver = current;
 		});
 		return current;
 	}
 	else if (ast.isMessage(node)) {
-		result = compileMessage(node, receiver, localContext);
+		result = compileMessage(options, node, receiver, localContext);
 	} else {
 		console.assert(false, 'Unrecognized expression type: ' + node.type);
 	}
@@ -292,7 +303,7 @@ function compile(node, receiver, localContext) {
 	return result;
 }
 
-function compileMessage(node, receiver, localContext) {
+function compileMessage(options: Options, node: Message, receiver: JSAST, localContext: JSAST) {
 
 	var message = node;
 	var symbolValue = message.getSymbolValue();
@@ -302,13 +313,13 @@ function compileMessage(node, receiver, localContext) {
 	switch (symbolType) {
     case 'number': {
       result = b.callExpression(
-          libraryIdentifier('IoNumberWrapper'),
+          libraryIdentifier(options, 'IoNumberWrapper'),
           [b.literal(+symbolValue)]);
     }
     break;
     case 'string': {
       result = b.callExpression(
-          libraryIdentifier('IoStringWrapper'),
+          libraryIdentifier(options, 'IoStringWrapper'),
           [b.literal(symbolValue)]);
     }
     break;
@@ -323,7 +334,7 @@ function compileMessage(node, receiver, localContext) {
                // It gets turned into a ,-delimited JS expression.
               var result = b.sequenceExpression(
                   arg.map(function (realarg) {
-                      return compile(realarg, localContext, localContext);
+                      return compile(options, realarg, localContext, localContext);
                   }));
               return result;
           })));
@@ -336,7 +347,7 @@ function compileMessage(node, receiver, localContext) {
               // Arguments will have the locals object as context
               // arg is a sequence here also
               return b.sequenceExpression(arg.map(function (realarg) {
-                  return compile(realarg, b.identifier("locals"), b.identifier("locals"));
+                  return compile(options, realarg, b.identifier("locals"), b.identifier("locals"));
               }));
           }));
 
@@ -356,7 +367,7 @@ function compileMessage(node, receiver, localContext) {
           var methodBody = lastArgument;
 
           result.arguments[result.arguments.length - 1] = b.callExpression(
-              libraryIdentifier('IoThunk'),
+              libraryIdentifier(options, 'IoThunk'),
               [
                   b.functionExpression(
                       null,
@@ -371,12 +382,12 @@ function compileMessage(node, receiver, localContext) {
 
           var conseq = result.arguments[2];
           result.arguments[2] = b.callExpression(
-              libraryIdentifier('IoThunk'),
+              libraryIdentifier(options, 'IoThunk'),
               [b.functionExpression(null, [], b.blockStatement([b.returnStatement(conseq)]))]);
 
           var alt = result.arguments[3];
           result.arguments[3] = b.callExpression(
-              libraryIdentifier('IoThunk'),
+              libraryIdentifier(options, 'IoThunk'),
               [b.functionExpression(null, [], b.blockStatement([b.returnStatement(alt)]))]);
       }
     }
@@ -385,7 +396,7 @@ function compileMessage(node, receiver, localContext) {
 	return result;
 }
 
-function libraryIdentifier (id) {
+function libraryIdentifier(options, id) {
 	return b.memberExpression(
 		b.identifier(options.runtimeLib),
 		b.identifier(id),
@@ -395,5 +406,4 @@ function libraryIdentifier (id) {
 module.exports = {
 	parse: parse,
 	compile: parseAndEmit,
-	setOptions: setOptions,
 };

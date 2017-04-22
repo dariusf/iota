@@ -4,16 +4,11 @@ var lib = require('./build/lib');
 var _io = lib;
 
 function compileCode(input, options) {
-	options = options || {};
-	compile.setOptions(options);
-	var result = compile.compile(input);
-	return result.trim();
+	return compile.compile(input, options).trim();
 }
 
 function parse(input, options) {
-	options = options || {};
-	compile.setOptions(options);
-	return compile.parse(input);
+	return compile.parse(input, options);
 }
 
 function evaluate (code) {

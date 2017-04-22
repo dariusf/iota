@@ -1,4 +1,10 @@
 {
-  "presets": ["env", "flow"],
-  "plugins": ["transform-async-generator-functions"]
+  "presets": [
+    "env",
+    "flow",
+    "stage-3", // for object-rest-spread
+  ],
+  "plugins": [
+    "transform-async-generator-functions"
+  ]
 }

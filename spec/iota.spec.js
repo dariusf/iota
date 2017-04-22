@@ -10,6 +10,7 @@ describe('runtime', function() {
 		expect(iota.eval('\n;1;//aa akkdh jkh\n;\n2 4;;')).toBe(4);
 		expect(iota.eval('\n;1;#aa akkdh jkh\n;\n3 5;;')).toBe(5);
 		expect(iota.eval('\n;1;/*aa akkdh jkh\nasds\n*/;\n3 6;;')).toBe(6);
+		
 		expect(iota.parse('')).toEqual(b.program([]));
 		expect(iota.compile('')).toBe('');
 		expect(iota.eval('')).toBe(null);
@@ -39,7 +40,7 @@ describe('runtime', function() {
 			expect(s).toEqual('hello');
 			history.push(s);
 		}
-		thisValue = {say: log};
+		var thisValue = {say: log};
 		thisValue.moveDown = function () {
 			expect(this).toEqual(thisValue);
 			history.push('moveDown');
@@ -55,3 +56,9 @@ describe('runtime', function() {
 		expect(history).toEqual(['moveDown', 'hello'])
 	});
 });
+
+// describe('cli', function() {
+// 	it('options', function() {
+		
+// 	});
+// });

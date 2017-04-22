@@ -133,6 +133,7 @@ function assertArray (node: Array<Expr>, pred?: Object => bool) {
 }
 
 module.exports = {
+	Expr,
 	Chain: Chain,
 	Message: Message,
 	Symbol: Symbol,
