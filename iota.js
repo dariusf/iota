@@ -1,4 +1,6 @@
 
+require('source-map-support').install();
+
 var compile = require('./build/compile');
 var lib = require('./build/lib');
 var _io = lib;
